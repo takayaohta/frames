@@ -499,6 +499,56 @@ const handwritingEase = (t: number): number => {
   }
 };
 
+// Windows98風エラーポップアップコンポーネント
+const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = ({ isVisible, onClose }) => {
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 shadow-lg"
+        style={{ minWidth: '300px', maxWidth: '400px' }}
+      >
+        {/* タイトルバー */}
+        <div className="bg-[#000080] text-white px-2 py-1 flex justify-between items-center">
+          <span className="text-sm font-bold">Error</span>
+          <button
+            onClick={onClose}
+            className="w-4 h-4 bg-[#c0c0c0] border border-t-white border-l-white border-b-gray-500 border-r-gray-500 flex items-center justify-center hover:bg-gray-300"
+          >
+            <span className="text-black text-xs font-bold">×</span>
+          </button>
+        </div>
+        {/* コンテンツ */}
+        <div className="p-4">
+          <div className="flex items-center mb-4">
+            <div className="w-8 h-8 bg-red-500 mr-3 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-lg font-bold">!</span>
+            </div>
+            <div className="flex-1">
+              <p className="text-base text-black font-semibold mb-0">
+                Now, only 3:4 ratio photos are supported.
+              </p>
+            </div>
+          </div>
+          {/* OKボタン */}
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-1 bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[60px] min-h-[24px]"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 const FramesTool: React.FC = () => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [space, setSpace] = useState<SpaceType>('M');
@@ -511,6 +561,7 @@ const FramesTool: React.FC = () => {
   const [captionLines, setCaptionLines] = useState<[string, string]>(['', '']);
   const [printStatus, setPrintStatus] = useState<'idle' | 'done'>('idle');
   const [controllerVisible, setControllerVisible] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   // 必要なrefやstateを復活
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -556,6 +607,14 @@ const FramesTool: React.FC = () => {
   const baseWidth = 75; // 5:7のvw
   const diff = (baseWidth - previewWidthNum) / 2;
   const controllerMarginLeft = diff > 0 ? `${diff}vw` : '0px';
+
+  // アスペクト比チェック関数（3:4に近いかどうか）
+  const isSupportedAspectRatio = useCallback((width: number, height: number): boolean => {
+    const aspectRatio = width / height;
+    const targetRatio = 3 / 4; // 3:4
+    const tolerance = 0.1; // 10%の許容範囲
+    return Math.abs(aspectRatio - targetRatio) < tolerance;
+  }, []);
 
   // 主色抽出（簡易版: 全体平均）
   const getDominantColor = useCallback((img: HTMLImageElement): string => {
@@ -631,6 +690,12 @@ const FramesTool: React.FC = () => {
     reader.onload = (ev) => {
       const img = new window.Image();
       img.onload = () => {
+        // アスペクト比チェック
+        if (!isSupportedAspectRatio(img.width, img.height)) {
+          setShowErrorPopup(true);
+          return;
+        }
+        
         setImage(img);
         setAutoColor(getDominantColor(img));
         setAutoPattern(1); // auto色はパターン1から開始
@@ -651,7 +716,7 @@ const FramesTool: React.FC = () => {
       img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
-  }, [getDominantColor]);
+  }, [getDominantColor, isSupportedAspectRatio]);
 
   // プレイスホルダークリックでファイル選択
   const handlePlaceholderClick = () => {
@@ -816,6 +881,7 @@ const FramesTool: React.FC = () => {
     // --- スマホ用レイアウト ---
     return (
       <div className="bg-[#F2F2F2] flex flex-col min-h-screen" style={{ padding: '0 12px' }}>
+        <Win98ErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
         {/* タイトル（画面左上） */}
         <span
           style={{
@@ -1076,6 +1142,7 @@ const FramesTool: React.FC = () => {
   // --- PC用レイアウト ---
   return (
     <div className="bg-[#F2F2F2] flex flex-row min-h-screen">
+      <Win98ErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
       {/* タイトルカラム: 画面Y軸中央に配置 */}
       <div className="flex justify-center items-center w-[320px] h-screen">
         <h1 className="text-[4rem] font-extrabold leading-none text-center" style={{ fontFamily: 'KT Flux 2 100 SemiBold, sans-serif', fontWeight: 600 }}>Frames</h1>
