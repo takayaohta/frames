@@ -453,11 +453,16 @@ function getFramePadding(width: number, height: number, ratio: string, space: st
   const extraBottom = Math.max(0, minPadBottom - basePadding);
 
   const shortSide = Math.min(width, height);
-  const padTop = Math.round(shortSide * basePadding);
+  let padTop = Math.round(shortSide * basePadding);
   const padLeft = Math.round(shortSide * basePadding);
   const padRight = Math.round(shortSide * basePadding);
   // 下部は均等フレーム＋追加余白
   const padBottom = Math.round(shortSide * (basePadding + extraBottom));
+
+  // 9:16（16:9）だけ上部余白を2.5倍に
+  if (ratio === '9:16') {
+    padTop = padTop * 2.5;
+  }
 
   return { padTop, padLeft, padRight, padBottom };
 }
@@ -674,8 +679,10 @@ const FramesTool: React.FC = () => {
   const [exifData, setExifData] = useState<ExifData | null>(null);
   const [captionLines, setCaptionLines] = useState<[string, string]>(['', '']);
   const [printStatus, setPrintStatus] = useState<'idle' | 'done'>('idle');
+  const [showResetButton, setShowResetButton] = useState(false);
   const [controllerVisible, setControllerVisible] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [isPrintDisabled, setIsPrintDisabled] = useState(false);
 
   // 必要なrefやstateを復活
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -839,6 +846,12 @@ const FramesTool: React.FC = () => {
 
   // auto色の切り替えロジック
   const handleColorChange = (newColor: ColorType) => {
+    // 設定変更時にPrintボタンを有効化
+    if (isPrintDisabled) {
+      setIsPrintDisabled(false);
+      setPrintStatus('idle');
+    }
+    
     if (newColor === 'snap') {
       if (color === 'snap') {
         setSnapPattern(snapPattern === 1 ? 2 : 1);
@@ -1066,7 +1079,13 @@ const FramesTool: React.FC = () => {
                 <SliderWithLabels
                   options={RATIOS}
                   value={ratio}
-                  onChange={setRatio}
+                  onChange={(newRatio) => {
+                    if (isPrintDisabled) {
+                      setIsPrintDisabled(false);
+                      setPrintStatus('idle');
+                    }
+                    setRatio(newRatio);
+                  }}
                   label=""
                   icons={[<RatioIcon ratio="1:1" />, <RatioIcon ratio="5:7" />, <RatioIcon ratio="9:16" />]}
                   iconPosition="above"
@@ -1088,7 +1107,13 @@ const FramesTool: React.FC = () => {
                 <SliderWithLabels
                   options={SPACES}
                   value={space}
-                  onChange={setSpace}
+                  onChange={(newSpace) => {
+                    if (isPrintDisabled) {
+                      setIsPrintDisabled(false);
+                      setPrintStatus('idle');
+                    }
+                    setSpace(newSpace);
+                  }}
                   label=""
                   iconPosition="none"
                   trackMargin={0}
@@ -1141,13 +1166,21 @@ const FramesTool: React.FC = () => {
                 setAutoPattern(1);
                 setExifData(null);
                 setCaptionLines(['', '']);
+                setShowResetButton(false);
+                setPrintStatus('idle');
+                setIsPrintDisabled(false);
               }}
             >
-              Cancel
+              {showResetButton ? 'Reset' : 'Cancel'}
             </button>
             <button
-              className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black text-sm font-normal shadow active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
+              className={`px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none ${
+                isPrintDisabled 
+                  ? 'bg-[#c0c0c0] border-t-gray-400 border-l-gray-400 border-b-gray-500 border-r-gray-500 text-gray-500 cursor-not-allowed' 
+                  : 'bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px'
+              }`}
               style={{ transition: 'none' }}
+              disabled={isPrintDisabled}
               onClick={() => {
                 if (!canvasRef.current || !image) return;
                 
@@ -1241,6 +1274,7 @@ const FramesTool: React.FC = () => {
                       setPrintStatus('done');
                       setTimeout(() => {
                         setPrintStatus('idle');
+                        setIsPrintDisabled(false);
                         setImage(null);
                         setColor('');
                         setAutoColor('#e53e3e');
@@ -1266,16 +1300,11 @@ const FramesTool: React.FC = () => {
                   URL.revokeObjectURL(url);
 
                   setPrintStatus('done');
-                  setTimeout(() => {
-                    setPrintStatus('idle');
-                    setImage(null);
-                    setColor('');
-                    setAutoColor('#e53e3e');
-                    setSnapPattern(1);
-                    setAutoPattern(1);
-                    setExifData(null);
-                    setCaptionLines(['', '']);
-                  }, 1500);
+                  setShowResetButton(true);
+                  setIsPrintDisabled(true);
+                  // setTimeout(() => {
+                  //   setPrintStatus('idle');
+                  // }, 1500);
                 }, 'image/jpeg', 1.0);
               }}
             >
@@ -1334,7 +1363,13 @@ const FramesTool: React.FC = () => {
                   <SliderWithLabels
                     options={RATIOS}
                     value={ratio}
-                    onChange={setRatio}
+                    onChange={(newRatio) => {
+                      if (isPrintDisabled) {
+                        setIsPrintDisabled(false);
+                        setPrintStatus('idle');
+                      }
+                      setRatio(newRatio);
+                    }}
                     label=""
                     icons={[<RatioIcon ratio="1:1" />, <RatioIcon ratio="5:7" />, <RatioIcon ratio="9:16" />]}
                     iconPosition="above"
@@ -1356,7 +1391,13 @@ const FramesTool: React.FC = () => {
                   <SliderWithLabels
                     options={SPACES}
                     value={space}
-                    onChange={setSpace}
+                    onChange={(newSpace) => {
+                      if (isPrintDisabled) {
+                        setIsPrintDisabled(false);
+                        setPrintStatus('idle');
+                      }
+                      setSpace(newSpace);
+                    }}
                     label=""
                     iconPosition="none"
                     trackMargin={0}
@@ -1409,13 +1450,40 @@ const FramesTool: React.FC = () => {
                   setAutoPattern(1);
                   setExifData(null);
                   setCaptionLines(['', '']);
+                  setShowResetButton(false);
+                  setPrintStatus('idle');
+                  setIsPrintDisabled(false);
                 }}
               >
-                Cancel
+                {showResetButton ? 'Reset' : 'Cancel'}
               </button>
               <button
-                className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black text-sm font-normal shadow active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
-                style={{ transition: 'none' }}
+                className={isPrintDisabled ? '' : 'px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black text-sm font-normal shadow active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none'}
+                style={isPrintDisabled ? {
+                  display: 'inline-block',
+                  background: '#dfdfdf',
+                  color: '#a0a0a0',
+                  border: '2px solid #888',
+                  borderTop: '2px solid #fff',
+                  borderLeft: '2px solid #fff',
+                  borderBottom: '2px solid #444',
+                  borderRight: '2px solid #444',
+                  boxShadow: '1px 1px 0 #fff inset, -1px -1px 0 #444 inset',
+                  cursor: 'default',
+                  minWidth: 80,
+                  minHeight: 28,
+                  padding: '0.25rem 1rem',
+                  borderRadius: 0,
+                  fontSize: '0.875rem',
+                  fontFamily: 'inherit',
+                  fontWeight: 400,
+                  verticalAlign: 'middle',
+                  boxSizing: 'border-box',
+                  textAlign: 'center',
+                  textShadow: '1px 1px 0 #fff',
+                  opacity: 1,
+                } : { transition: 'none' }}
+                disabled={isPrintDisabled}
                 onClick={() => {
                   if (!canvasRef.current || !image) return;
                   
@@ -1533,17 +1601,12 @@ const FramesTool: React.FC = () => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
 
-                    setPrintStatus('done');
-                    setTimeout(() => {
-                      setPrintStatus('idle');
-                      setImage(null);
-                      setColor('');
-                      setAutoColor('#e53e3e');
-                      setSnapPattern(1);
-                      setAutoPattern(1);
-                      setExifData(null);
-                      setCaptionLines(['', '']);
-                    }, 1500);
+                                      setPrintStatus('done');
+                  setShowResetButton(true);
+                  setIsPrintDisabled(true);
+                  // setTimeout(() => {
+                  //   setPrintStatus('idle');
+                  // }, 1500);
                   }, 'image/jpeg', 1.0);
                 }}
               >
