@@ -549,6 +549,11 @@ const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = (
   );
 };
 
+// デバイス判定関数
+function isMobileDevice() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
 const FramesTool: React.FC = () => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [space, setSpace] = useState<SpaceType>('M');
@@ -1096,9 +1101,7 @@ const FramesTool: React.FC = () => {
                 }
 
                 // ダウンロード
-                // ファイル名命名ルール:
-                // frames-西暦-日付-時間-比率（1:1→sq, 5:7→x, 9:16→ig）
-                outputCanvas.toBlob((blob) => {
+                outputCanvas.toBlob(async (blob) => {
                   if (!blob) return;
                   const ratioMap = { '1:1': 'sq', '5:7': 'x', '9:16': 'ig' };
                   const now = new Date();
@@ -1109,6 +1112,41 @@ const FramesTool: React.FC = () => {
                   const min = String(now.getMinutes()).padStart(2, '0');
                   const ratioShort = ratioMap[ratio] || 'x';
                   const filename = `frames-${yyyy}-${mm}${dd}-${hh}${min}-${ratioShort}.jpeg`;
+
+                  // Fileオブジェクトを先に作る
+                  const file = new File([blob], filename, { type: 'image/jpeg' });
+
+                  // スマホ＆Web Share API（files対応）判定
+                  if (
+                    isMobileDevice() &&
+                    navigator.canShare &&
+                    navigator.canShare({ files: [file] })
+                  ) {
+                    try {
+                      await navigator.share({
+                        files: [file],
+                        title: 'Frames Photo',
+                        text: 'Check out this photo frame!',
+                      });
+                      // 共有成功時は何もしない
+                      setPrintStatus('done');
+                      setTimeout(() => {
+                        setPrintStatus('idle');
+                        setImage(null);
+                        setColor('');
+                        setAutoColor('#e53e3e');
+                        setSnapPattern(1);
+                        setAutoPattern(1);
+                        setExifData(null);
+                        setCaptionLines(['', '']);
+                      }, 1500);
+                      return;
+                    } catch (err) {
+                      // 共有キャンセルやエラー時はダウンロードにフォールバック
+                    }
+                  }
+
+                  // ダウンロード処理（PCや非対応端末、共有失敗時）
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
@@ -1117,18 +1155,19 @@ const FramesTool: React.FC = () => {
                   a.click();
                   document.body.removeChild(a);
                   URL.revokeObjectURL(url);
+
+                  setPrintStatus('done');
+                  setTimeout(() => {
+                    setPrintStatus('idle');
+                    setImage(null);
+                    setColor('');
+                    setAutoColor('#e53e3e');
+                    setSnapPattern(1);
+                    setAutoPattern(1);
+                    setExifData(null);
+                    setCaptionLines(['', '']);
+                  }, 1500);
                 }, 'image/jpeg', 1.0);
-                setPrintStatus('done');
-                setTimeout(() => {
-                  setPrintStatus('idle');
-                  setImage(null);
-                  setColor('');
-                  setAutoColor('#e53e3e');
-                  setSnapPattern(1);
-                  setAutoPattern(1);
-                  setExifData(null);
-                  setCaptionLines(['', '']);
-                }, 1500);
               }}
             >
               {printStatus === 'done' ? 'Done!' : 'Print'}
@@ -1330,9 +1369,7 @@ const FramesTool: React.FC = () => {
                   }
 
                   // ダウンロード
-                  // ファイル名命名ルール:
-                  // frames-西暦-日付-時間-比率（1:1→sq, 5:7→x, 9:16→ig）
-                  outputCanvas.toBlob((blob) => {
+                  outputCanvas.toBlob(async (blob) => {
                     if (!blob) return;
                     const ratioMap = { '1:1': 'sq', '5:7': 'x', '9:16': 'ig' };
                     const now = new Date();
@@ -1343,6 +1380,41 @@ const FramesTool: React.FC = () => {
                     const min = String(now.getMinutes()).padStart(2, '0');
                     const ratioShort = ratioMap[ratio] || 'x';
                     const filename = `frames-${yyyy}-${mm}${dd}-${hh}${min}-${ratioShort}.jpeg`;
+
+                    // Fileオブジェクトを先に作る
+                    const file = new File([blob], filename, { type: 'image/jpeg' });
+
+                    // スマホ＆Web Share API（files対応）判定
+                    if (
+                      isMobileDevice() &&
+                      navigator.canShare &&
+                      navigator.canShare({ files: [file] })
+                    ) {
+                      try {
+                        await navigator.share({
+                          files: [file],
+                          title: 'Frames Photo',
+                          text: 'Check out this photo frame!',
+                        });
+                        // 共有成功時は何もしない
+                        setPrintStatus('done');
+                        setTimeout(() => {
+                          setPrintStatus('idle');
+                          setImage(null);
+                          setColor('');
+                          setAutoColor('#e53e3e');
+                          setSnapPattern(1);
+                          setAutoPattern(1);
+                          setExifData(null);
+                          setCaptionLines(['', '']);
+                        }, 1500);
+                        return;
+                      } catch (err) {
+                        // 共有キャンセルやエラー時はダウンロードにフォールバック
+                      }
+                    }
+
+                    // ダウンロード処理（PCや非対応端末、共有失敗時）
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -1351,18 +1423,19 @@ const FramesTool: React.FC = () => {
                     a.click();
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
+
+                    setPrintStatus('done');
+                    setTimeout(() => {
+                      setPrintStatus('idle');
+                      setImage(null);
+                      setColor('');
+                      setAutoColor('#e53e3e');
+                      setSnapPattern(1);
+                      setAutoPattern(1);
+                      setExifData(null);
+                      setCaptionLines(['', '']);
+                    }, 1500);
                   }, 'image/jpeg', 1.0);
-                  setPrintStatus('done');
-                  setTimeout(() => {
-                    setPrintStatus('idle');
-                    setImage(null);
-                    setColor('');
-                    setAutoColor('#e53e3e');
-                    setSnapPattern(1);
-                    setAutoPattern(1);
-                    setExifData(null);
-                    setCaptionLines(['', '']);
-                  }, 1500);
                 }}
               >
                 {printStatus === 'done' ? 'Done!' : 'Print'}
