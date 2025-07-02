@@ -1270,19 +1270,10 @@ const FramesTool: React.FC = () => {
                         title: 'Frames Photo',
                         text: 'Check out this photo frame!',
                       });
-                      // 共有成功時は何もしない
+                      // 共有成功時もPCと同じくロック＆Reset待ちにする
                       setPrintStatus('done');
-                      setTimeout(() => {
-                        setPrintStatus('idle');
-                        setIsPrintDisabled(false);
-                        setImage(null);
-                        setColor('');
-                        setAutoColor('#e53e3e');
-                        setSnapPattern(1);
-                        setAutoPattern(1);
-                        setExifData(null);
-                        setCaptionLines(['', '']);
-                      }, 1500);
+                      setShowResetButton(true);
+                      setIsPrintDisabled(true);
                       return;
                     } catch (err) {
                       // 共有キャンセルやエラー時はダウンロードにフォールバック
@@ -1573,18 +1564,10 @@ const FramesTool: React.FC = () => {
                           title: 'Frames Photo',
                           text: 'Check out this photo frame!',
                         });
-                        // 共有成功時は何もしない
+                        // 共有成功時もPCと同じくロック＆Reset待ちにする
                         setPrintStatus('done');
-                        setTimeout(() => {
-                          setPrintStatus('idle');
-                          setImage(null);
-                          setColor('');
-                          setAutoColor('#e53e3e');
-                          setSnapPattern(1);
-                          setAutoPattern(1);
-                          setExifData(null);
-                          setCaptionLines(['', '']);
-                        }, 1500);
+                        setShowResetButton(true);
+                        setIsPrintDisabled(true);
                         return;
                       } catch (err) {
                         // 共有キャンセルやエラー時はダウンロードにフォールバック
