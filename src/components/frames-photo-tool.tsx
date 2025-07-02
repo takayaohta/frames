@@ -510,7 +510,7 @@ const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = (
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         className="bg-[#c0c0c0] border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 shadow-lg"
-        style={{ minWidth: '300px', maxWidth: '400px' }}
+        style={{ width: '70vw', maxWidth: '400px', minWidth: '220px' }}
       >
         {/* タイトルバー */}
         <div className="bg-[#000080] text-white px-2 py-1 flex justify-between items-center">
@@ -529,8 +529,8 @@ const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = (
               <span className="text-white text-lg font-bold">!</span>
             </div>
             <div className="flex-1">
-              <p className="text-base text-black font-semibold mb-0">
-                Now, only 3:4 ratio photos are supported.
+              <p className="text-base text-black font-semibold mb-0 leading-tight" style={{ lineHeight: 1.2 }}>
+                Now, only 3:4 ratio photos
               </p>
             </div>
           </div>
