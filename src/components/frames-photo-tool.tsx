@@ -2,6 +2,9 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import EXIF from 'exif-js';
 import { getCaptionLines, ExifData } from '../utils/caption';
 import { motion } from 'framer-motion';
+import * as THREE from 'three';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry';
 
 // SVGアイコン
 const RatioIcon = ({ ratio }: { ratio: string }) => {
@@ -498,7 +501,7 @@ const handwritingEase = (t: number): number => {
     return 1;
   }
 };
-
+  
 // Windows98風エラーポップアップコンポーネント
 const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = ({ isVisible, onClose }) => {
   if (!isVisible) return null;
@@ -523,16 +526,14 @@ const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = (
           </button>
         </div>
         {/* コンテンツ */}
-        <div className="p-4">
-          <div className="flex items-center mb-4">
-            <div className="w-8 h-8 bg-red-500 mr-3 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-lg font-bold">!</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-base text-black font-semibold mb-0 leading-tight" style={{ lineHeight: 1.2 }}>
-                Now, only 3:4 ratio photos
-              </p>
-            </div>
+        <div className="p-4" style={{ minHeight: '56px' }}>
+          <div className="w-full text-center mb-4">
+            <span className="inline-block align-middle w-8 h-8 bg-red-500 mr-4" style={{ verticalAlign: 'middle' }}>
+              <span className="text-white text-lg font-bold" style={{ lineHeight: '2rem' }}>!</span>
+            </span>
+            <span className="inline-block align-middle text-base text-black font-semibold leading-tight" style={{ lineHeight: 1.2, verticalAlign: 'middle' }}>
+              Now, only 3:4 ratio photos
+            </span>
           </div>
           {/* OKボタン */}
           <div className="flex justify-end">
@@ -553,6 +554,109 @@ const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = (
 function isMobileDevice() {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
+
+// Three.jsで3Dテキストを表示するコンポーネント
+const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
+  const mountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return;
+
+    // 既存canvasの削除
+    while (mount.firstChild) mount.removeChild(mount.firstChild);
+
+    // シーン、カメラ、レンダラー
+    const scene = new THREE.Scene();
+    const width = 400;
+    const height = 120;
+    const camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 1000);
+    camera.position.z = 240;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setSize(width, height);
+    mount.appendChild(renderer.domElement);
+
+    // ライト
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(0, 0, 100);
+    scene.add(light);
+
+    // フォントローダー
+    const loader = new FontLoader();
+    let mesh: THREE.Mesh | null = null;
+
+    loader.load('https://unpkg.com/three@0.157.0/examples/fonts/helvetiker_bold.typeface.json', (font) => {
+      const geometry = new TextGeometry('Frames', {
+        font,
+        size: 40,
+        height: 10,
+        curveSegments: 2,
+        bevelEnabled: false,
+      });
+      geometry.center();
+      const material = new THREE.MeshBasicMaterial({ color: 0x111111 });
+      mesh = new THREE.Mesh(geometry, material);
+      // 位置を右に調整（回転時の見た目バランスのため）
+      mesh.position.x = 15;
+      scene.add(mesh);
+
+      // 色の同期関数
+      const updateColor = (color: string) => {
+        if (mesh && mesh.material) {
+          let hexColor = 0x111111; // デフォルトは黒
+          
+          if (color === 'white' || color === '#fff' || color === '#ffffff') {
+            hexColor = 0xCCCCCC; // 明るいグレー（黒との差を調整）
+          } else if (color === 'black' || color === '#111' || color === '#000' || color === '#000000') {
+            hexColor = 0x111111; // 黒
+          } else if (color === 'win98blue' || color === '#0037A6') {
+            hexColor = 0x0037A6; // Win98ブルー
+          } else if (color === 'snap') {
+            hexColor = 0x00AD50; // Snap色
+          } else if (color.startsWith('#')) {
+            // #で始まる色コードは最後に処理（上記の条件に該当しない場合）
+            hexColor = parseInt(color.slice(1), 16);
+          }
+          
+          (mesh.material as THREE.MeshBasicMaterial).color.setHex(hexColor);
+        }
+      };
+      
+      // 初期色を設定
+      updateColor(frameColor);
+
+      // Win98風カクカク回転（8fps, 1step=0.08rad）
+      let theta = 0;
+      const step = 0.1;
+      const interval = 1000 / 10; // 10fps
+      const intervalId = setInterval(() => {
+        theta -= step; // マイナスにして時計回りに変更
+        if (mesh) mesh.rotation.y = theta;
+        renderer.render(scene, camera);
+      }, interval);
+
+      // クリーンアップ
+      return () => {
+        clearInterval(intervalId);
+      };
+    });
+
+    // クリーンアップ
+    return () => {
+      if (mesh) {
+        mesh.geometry.dispose();
+        (mesh.material as THREE.Material).dispose();
+        scene.remove(mesh);
+      }
+      renderer.dispose();
+      while (mount.firstChild) mount.removeChild(mount.firstChild);
+    };
+  }, [frameColor]); // frameColorが変更されたら再レンダリング
+
+  return <div ref={mountRef} style={{ width: 400, height: 120 }} />;
+};
 
 const FramesTool: React.FC = () => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -1184,7 +1288,7 @@ const FramesTool: React.FC = () => {
       <Win98ErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
       {/* タイトルカラム: 画面Y軸中央に配置 */}
       <div className="flex justify-center items-center w-[320px] h-screen">
-        <h1 className="text-[4rem] font-extrabold leading-none text-center" style={{ fontFamily: 'KT Flux 2 100 SemiBold, sans-serif', fontWeight: 600 }}>Frames</h1>
+        <Frames3DTitle frameColor={image ? getFrameColor(color, autoColor, snapPattern) : '#111'} />
       </div>
       {/* プレビュー＋コントローラー: 固定レイアウト */}
       <div className="flex-1 flex flex-row items-center" style={{ minHeight: '100vh' }}>
