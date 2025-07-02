@@ -608,7 +608,7 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
           let hexColor = 0x111111; // デフォルトは黒
           
           if (color === 'white' || color === '#fff' || color === '#ffffff') {
-            hexColor = 0xCCCCCC; // 明るいグレー（黒との差を調整）
+            hexColor = 0x111111; // White選択時も黒に統一
           } else if (color === 'black' || color === '#111' || color === '#000' || color === '#000000') {
             hexColor = 0x111111; // 黒
           } else if (color === 'win98blue' || color === '#0037A6') {
@@ -842,6 +842,8 @@ const FramesTool: React.FC = () => {
         setColor('snap');
       }
     } else if (newColor === 'auto') {
+      setColor('auto');
+      if (image) setAutoColor(getDominantColor(image));
       if (color === 'auto') {
         // auto色が既に選択されている場合、パターンを切り替え
         const nextPattern = autoPattern === 1 ? 2 : autoPattern === 2 ? 3 : 1;
@@ -858,8 +860,6 @@ const FramesTool: React.FC = () => {
       } else {
         // 他の色からauto色に切り替える場合、パターン1から開始
         setAutoPattern(1);
-        if (image) setAutoColor(getDominantColor(image));
-        setColor('auto');
       }
     } else {
       setColor(newColor);
@@ -881,11 +881,9 @@ const FramesTool: React.FC = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     if (!image) {
-      // プレースホルダー: 背景＋2本斜線＋＋マーク
+      // プレースホルダー: 背景＋2本斜線
       const frameColor = getFrameColor(color, autoColor, snapPattern);
       ctx.fillStyle = frameColor;
-      ctx.fillRect(0, 0, canvasW, canvasH);
-      ctx.fillStyle = '#e5e5e5';
       ctx.fillRect(0, 0, canvasW, canvasH);
       // 斜線1
       ctx.strokeStyle = '#bbb';
@@ -897,19 +895,21 @@ const FramesTool: React.FC = () => {
       // 斜線2
       ctx.beginPath();
       ctx.moveTo(0, 0);
-            ctx.lineTo(canvasW, canvasH);
+      ctx.lineTo(canvasW, canvasH);
       ctx.stroke();
-      // ＋マーク
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = getContrastColor(frameColor);
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      ctx.moveTo(canvasW / 2 - 13, canvasH / 2);
-      ctx.lineTo(canvasW / 2 + 13, canvasH / 2);
-      ctx.moveTo(canvasW / 2, canvasH / 2 - 13);
-      ctx.lineTo(canvasW / 2, canvasH / 2 + 13);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      // ＋マークは初回アクセス時（colorが''）のみ表示
+      if (color === '') {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#111"; // 常に黒色で描画
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.moveTo(canvasW / 2 - 13, canvasH / 2);
+        ctx.lineTo(canvasW / 2 + 13, canvasH / 2);
+        ctx.moveTo(canvasW / 2, canvasH / 2 - 13);
+        ctx.lineTo(canvasW / 2, canvasH / 2 + 13);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
     } else {
       // 画像描画（従来通り）
       const frameColor = getFrameColor(color, autoColor, snapPattern);
@@ -1097,7 +1097,7 @@ const FramesTool: React.FC = () => {
             <div className="flex flex-col items-start">
               <div className="text-left mb-2" style={{ fontSize: '0.95rem' }}>
                 <span className="font-bold" style={{ letterSpacing: '0.1em' }}>Colour :</span>
-                <span className="ml-2" style={{ letterSpacing: '0.55em' }}>{COLOR_LABELS[color]}</span>
+                <span className="ml-2" style={{ letterSpacing: '0.03em' }}>{COLOR_LABELS[color]}</span>
               </div>
               <div className="w-full">
                 <div className="flex flex-row gap-2 p-1 bg-white border border-b-[2px] border-r-[2px] border-t border-l border-t-white border-l-white border-b-gray-500 border-r-gray-500 shadow w-full rounded-none">
@@ -1288,7 +1288,7 @@ const FramesTool: React.FC = () => {
       <Win98ErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
       {/* タイトルカラム: 画面Y軸中央に配置 */}
       <div className="flex justify-center items-center w-[320px] h-screen">
-        <Frames3DTitle frameColor={image ? getFrameColor(color, autoColor, snapPattern) : '#111'} />
+        <Frames3DTitle frameColor={(!image && color === '') ? '#111' : getFrameColor(color, autoColor, snapPattern)} />
       </div>
       {/* プレビュー＋コントローラー: 固定レイアウト */}
       <div className="flex-1 flex flex-row items-center" style={{ minHeight: '100vh' }}>
