@@ -42,10 +42,15 @@ const SNAP_COLORS = {
 } as const;
 
 // ラベルの左オフセット
-const LABEL_OFFSETS = {
-  spaces: 4,
-  ratio: 2,
-  colour: 0
+const LABEL_OFFSETS_PC = {
+  ratio: 4,
+  spaces: -6, // 10px左に移動
+  colour: 3
+} as const;
+const LABEL_OFFSETS_SP = {
+  ratio: 5,
+  spaces: 6,
+  colour: 3
 } as const;
 
 // ラベル共通クラス
@@ -1053,7 +1058,7 @@ const FramesTool: React.FC = () => {
           <div className="flex flex-col gap-y-8 w-full">
             {/* Ratio */}
             <div className="flex flex-col items-start">
-              <div className="text-left mb-0" style={{ fontSize: '0.95rem' }}>
+              <div className="text-left mb-0" style={{ fontSize: forceMobile ? '0.95rem' : '1.05rem', paddingLeft: forceMobile ? LABEL_OFFSETS_SP.ratio : LABEL_OFFSETS_PC.ratio }}>
                 <span className="font-bold mr-2" style={{ letterSpacing: '0.1em' }}>Ratio :</span>
                 <span style={{ letterSpacing: '0.1em' }}>{ratio}</span>
               </div>
@@ -1075,7 +1080,7 @@ const FramesTool: React.FC = () => {
             </div>
             {/* Spaces */}
             <div className="flex flex-col items-start">
-              <div className="text-left mb-0 ml-1.5" style={{ fontSize: '0.95rem' }}>
+              <div className="text-left mb-0" style={{ fontSize: forceMobile ? '0.95rem' : '1.05rem', paddingLeft: forceMobile ? LABEL_OFFSETS_SP.spaces : LABEL_OFFSETS_PC.spaces }}>
                 <span className="font-bold mr-2" style={{ letterSpacing: '0.1em' }}>Spaces :</span>
                 <span style={{ letterSpacing: '0.1em' }}>{space}</span>
               </div>
@@ -1095,7 +1100,7 @@ const FramesTool: React.FC = () => {
             </div>
             {/* Colour */}
             <div className="flex flex-col items-start">
-              <div className="text-left mb-2" style={{ fontSize: '0.95rem' }}>
+              <div className="text-left mb-2" style={{ fontSize: forceMobile ? '0.95rem' : '1.05rem', paddingLeft: forceMobile ? LABEL_OFFSETS_SP.colour : LABEL_OFFSETS_PC.colour }}>
                 <span className="font-bold" style={{ letterSpacing: '0.1em' }}>Colour :</span>
                 <span className="ml-2" style={{ letterSpacing: '0.03em' }}>{COLOR_LABELS[color]}</span>
               </div>
@@ -1321,7 +1326,7 @@ const FramesTool: React.FC = () => {
             <div className="flex flex-col gap-y-8 w-full">
               {/* Ratio */}
               <div className="flex flex-col items-start">
-                <div className="text-left mb-0" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS.ratio }}>
+                <div className="text-left mb-0" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS_PC.ratio }}>
                   <span className="font-bold mr-2" style={{ letterSpacing: '0.03em' }}>Ratio :</span>
                   <span style={{ letterSpacing: '0.1em' }}>{ratio}</span>
                 </div>
@@ -1343,7 +1348,7 @@ const FramesTool: React.FC = () => {
               </div>
               {/* Spaces */}
               <div className="flex flex-col items-start">
-                <div className="text-left mb-0 ml-1.5" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS.spaces }}>
+                <div className="text-left mb-0 ml-1.5" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS_PC.spaces }}>
                   <span className="font-bold mr-2" style={{ letterSpacing: '0.015em' }}>Spaces :</span>
                   <span style={{ letterSpacing: '0.1em' }}>{space}</span>
                 </div>
@@ -1363,7 +1368,7 @@ const FramesTool: React.FC = () => {
               </div>
               {/* Colour */}
               <div className="flex flex-col items-start">
-                <div className="text-left mb-2" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS.colour }}>
+                <div className="text-left mb-2" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS_PC.colour }}>
                   <span className="font-bold" style={{ letterSpacing: '0.01em' }}>Colour :</span>
                   <span className="ml-2" style={{ letterSpacing: '0.03em' }}>{COLOR_LABELS[color]}</span>
                 </div>
