@@ -91,8 +91,8 @@
   background: transparent;
 }
 
-/* Windows98風スライダー */
-.slider-thumb-98 {
+/* Retro風スライダー */
+.slider-thumb-retro {
   width: 100%;
   height: 18px;
   background: transparent;
@@ -102,7 +102,7 @@
   -webkit-appearance: none;
   accent-color: transparent;
 }
-.slider-thumb-98::-webkit-slider-thumb {
+.slider-thumb-retro::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   background: #dfdfdf;
@@ -116,7 +116,7 @@
   appearance: none;
   -webkit-appearance: none;
 }
-.slider-thumb-98::-moz-range-thumb {
+.slider-thumb-retro::-moz-range-thumb {
   width: 18px;
   height: 18px;
   background: #dfdfdf;
@@ -128,7 +128,7 @@
   box-shadow: 1px 1px 0 #fff inset, -1px -1px 0 #444 inset;
   cursor: pointer;
 }
-.slider-thumb-98::-ms-thumb {
+.slider-thumb-retro::-ms-thumb {
   width: 18px;
   height: 18px;
   background: #dfdfdf;
@@ -140,21 +140,75 @@
   box-shadow: 1px 1px 0 #fff inset, -1px -1px 0 #444 inset;
   cursor: pointer;
 }
-.slider-thumb-98:focus {
+.slider-thumb-retro:focus {
   outline: none;
 }
-.slider-thumb-98::-webkit-slider-runnable-track {
+.slider-thumb-retro::-webkit-slider-runnable-track {
   height: 4px;
   background: transparent;
   border: none;
 }
-.slider-thumb-98::-ms-fill-lower,
-.slider-thumb-98::-ms-fill-upper {
+.slider-thumb-retro::-ms-fill-lower,
+.slider-thumb-retro::-ms-fill-upper {
   background: transparent;
   border: none;
 }
-.slider-thumb-98::-moz-range-track {
+.slider-thumb-retro::-moz-range-track {
   height: 4px;
   background: transparent;
   border: none;
+}
+
+.retro-btn {
+  display: inline-block;
+  background: #c0c0c0;
+  color: #222;
+  border: 2px solid #888;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #444;
+  border-right: 2px solid #444;
+  cursor: pointer;
+  min-width: 80px;
+  min-height: 28px;
+  padding: 0.25rem 1rem;
+  border-radius: 0;
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 400;
+  vertical-align: middle;
+  box-sizing: border-box;
+  text-align: center;
+  opacity: 1;
+  transition: none;
+}
+
+.retro-btn:active {
+  border-top: 2px solid #444;
+  border-left: 2px solid #444;
+  border-bottom: 2px solid #fff;
+  border-right: 2px solid #fff;
+  transform: translate(1px, 1px);
+}
+
+.retro-btn:disabled {
+  background: #c0c0c0;
+  color: #7a8591;
+  border: 2px solid #888;
+  border-top: 2px solid #fff;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #444;
+  border-right: 2px solid #444;
+  box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #444;
+  text-shadow: 1px 1px 0 #fff;
+  cursor: default;
+  opacity: 1;
+}
+
+.retro-btn-primary {
+  background: #c0c0c0;
+}
+
+.retro-btn-cancel {
+  background: #c0c0c0;
 }

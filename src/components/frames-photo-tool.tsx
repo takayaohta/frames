@@ -29,9 +29,9 @@ const RATIOS = ['1:1', '5:7', '9:16'] as const;
 const COLORS = [
   { key: 'white', color: '#fff' },
   { key: 'black', color: '#111' },
-  { key: 'win98blue', color: '#0037A6' }, // Win98ブルースクリーン
+  { key: 'retroblue', color: '#0037A6' }, // Retroブルースクリーン
   { key: 'snap', color: '#00AD50' },      // Snap
-  // { key: 'emerald', color: '#008080' },   // Win98壁紙エメラルド（非表示）
+  // { key: 'emerald', color: '#008080' },   // Retro壁紙エメラルド（非表示）
   { key: 'auto', color: '' }, // 主色は後でセット
 ];
 
@@ -146,8 +146,8 @@ const SliderWithLabels = <T extends string>({
             ))}
           </>
         )}
-        {/* 横線バー（Win98風：上が白、下がグレー） */}
-        <div className="absolute left-[10px] right-[10px] z-0" style={{ height: 2, top: 'calc(50% - 1px)' }}>
+        {/* 横線バー（Retro風：上が白、下がグレー） */}
+        <div className="absolute left-[11px] right-[11px] z-0" style={{ height: 2, top: 'calc(50% - 1px)' }}>
           {/* 上の白線 */}
           <div style={{
             position: 'absolute',
@@ -176,13 +176,13 @@ const SliderWithLabels = <T extends string>({
             step={1}
             value={idx}
             onChange={e => onChange(options[Number(e.target.value)])}
-            className="slider-thumb-98"
+            className="slider-thumb-retro"
             style={{
               position: 'absolute',
               top: 'calc(50% - 1px)',
               transform: 'translateY(-60%)',
-              left: `0px`,
-              width: `100%`,
+              left: `1px`,
+              width: `calc(100% - 2px)`,
               WebkitAppearance: 'none',
               appearance: 'none',
               height: 48,
@@ -268,7 +268,7 @@ export function getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canva
 const COLOR_LABELS: Record<ColorType, string> = {
   white: 'White',
   black: 'Dark',
-  win98blue: 'BSoD',
+  retroblue: 'BSoD',
   snap: 'Snap',
   auto: 'You',
 };
@@ -472,7 +472,7 @@ function getFrameColor(color: string, autoColor: string, snapPattern: 1 | 2 = 1)
   if (!color) return '#dfdfdf';
   if (color === 'white') return '#fff';
   if (color === 'black') return '#111';
-  if (color === 'win98blue') return '#0037A6';
+  if (color === 'retroblue') return '#0037A6';
   if (color === 'snap') return snapPattern === 1 ? SNAP_COLORS.pattern1 : SNAP_COLORS.pattern2;
   if (color === 'auto') return autoColor;
   return '#dfdfdf';
@@ -512,8 +512,8 @@ const handwritingEase = (t: number): number => {
   }
 };
   
-// Windows98風エラーポップアップコンポーネント
-const Win98ErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = ({ isVisible, onClose }) => {
+// Retro風エラーポップアップコンポーネント
+const RetroErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = ({ isVisible, onClose }) => {
   if (!isVisible) return null;
 
   return (
@@ -621,8 +621,8 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
             hexColor = 0x111111; // White選択時も黒に統一
           } else if (color === 'black' || color === '#111' || color === '#000' || color === '#000000') {
             hexColor = 0x111111; // 黒
-          } else if (color === 'win98blue' || color === '#0037A6') {
-            hexColor = 0x0037A6; // Win98ブルー
+          } else if (color === 'retroblue' || color === '#0037A6') {
+  hexColor = 0x0037A6; // Retroブルー
           } else if (color === 'snap') {
             hexColor = 0x00AD50; // Snap色
           } else if (color.startsWith('#')) {
@@ -637,7 +637,7 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
       // 初期色を設定
       updateColor(frameColor);
 
-      // Win98風カクカク回転（8fps, 1step=0.08rad）
+      // Retro風カクカク回転（8fps, 1step=0.08rad）
       let theta = 0;
       const step = 0.1;
       const interval = 1000 / 10; // 10fps
@@ -668,49 +668,19 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
   return <div ref={mountRef} style={{ width: 400, height: 120 }} />;
 };
 
-// Win98風ボタンの共通コンポーネント
-const Win98Button: React.FC<{
+// Retro風ボタンの共通コンポーネント
+const RetroButton: React.FC<{
   disabled?: boolean;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   children: React.ReactNode;
   type?: 'button' | 'submit' | 'reset';
-  className?: string;
-  style?: React.CSSProperties;
-}> = ({ disabled, onClick, children, type = 'button', className = '', style = {} }) => (
+  variant?: 'primary' | 'cancel';
+}> = ({ disabled, onClick, children, type = 'button', variant }) => (
   <button
     type={type}
     disabled={disabled}
     onClick={onClick}
-    className={disabled ? '' : className}
-    style={
-      disabled
-        ? {
-            display: 'inline-block',
-            background: '#dfdfdf',
-            color: '#7a8591',
-            border: '2px solid #888',
-            borderTop: '2px solid #fff',
-            borderLeft: '2px solid #fff',
-            borderBottom: '2px solid #444',
-            borderRight: '2px solid #444',
-            boxShadow: '1px 1px 0 #fff inset, -1px -1px 0 #444 inset',
-            cursor: 'default',
-            minWidth: 80,
-            minHeight: 28,
-            padding: '0.25rem 1rem',
-            borderRadius: 0,
-            fontSize: '0.875rem',
-            fontFamily: 'inherit',
-            fontWeight: 400,
-            verticalAlign: 'middle',
-            boxSizing: 'border-box',
-            textAlign: 'center',
-            textShadow: '1px 1px 0 #fff',
-            opacity: 1,
-            ...style,
-          }
-        : { transition: 'none', ...style }
-    }
+    className={`retro-btn ${variant === 'primary' ? 'retro-btn-primary' : ''} ${variant === 'cancel' ? 'retro-btn-cancel' : ''}`}
   >
     {children}
   </button>
@@ -740,7 +710,7 @@ const FramesTool: React.FC = () => {
   const [titlePosition, setTitlePosition] = useState(0);
 
   // スマホ用プレビューサイズ
-  const maxMobileW = Math.floor(Math.min(window.innerWidth * 0.95, 340));
+  const maxMobileW = Math.floor(Math.min(window.innerWidth * 0.80, 300)); // 85% → 80%、320 → 300
   const maxMobileH = 600;
   const [rw, rh] = ratio === '1:1' ? [1, 1] : ratio === '5:7' ? [5, 7] : [9, 16];
   let mobilePreviewW = maxMobileW;
@@ -947,10 +917,16 @@ const FramesTool: React.FC = () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     if (!image) {
-      // プレースホルダー: 背景＋2本斜線
+      // プレースホルダー: 背景＋2本斜線＋枠線
       const frameColor = getFrameColor(color, autoColor, snapPattern);
       ctx.fillStyle = frameColor;
       ctx.fillRect(0, 0, canvasW, canvasH);
+      
+      // 枠線を描画（画像がない時のみ）
+      ctx.strokeStyle = '#bbb';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, canvasW, canvasH);
+      
       // 斜線1
       ctx.strokeStyle = '#bbb';
       ctx.lineWidth = 1;
@@ -963,19 +939,6 @@ const FramesTool: React.FC = () => {
       ctx.moveTo(0, 0);
       ctx.lineTo(canvasW, canvasH);
       ctx.stroke();
-      // ＋マークは初回アクセス時（colorが''）のみ表示
-      if (color === '') {
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "#111"; // 常に黒色で描画
-        ctx.globalAlpha = 1;
-        ctx.beginPath();
-        ctx.moveTo(canvasW / 2 - 13, canvasH / 2);
-        ctx.lineTo(canvasW / 2 + 13, canvasH / 2);
-        ctx.moveTo(canvasW / 2, canvasH / 2 - 13);
-        ctx.lineTo(canvasW / 2, canvasH / 2 + 13);
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-      }
     } else {
       // 画像描画（従来通り）
       const frameColor = getFrameColor(color, autoColor, snapPattern);
@@ -1056,7 +1019,7 @@ const FramesTool: React.FC = () => {
     // --- スマホ用レイアウト ---
     return (
       <div className="bg-[#F2F2F2] flex flex-col min-h-screen" style={{ padding: '0 12px' }}>
-        <Win98ErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
+        <RetroErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
         {/* タイトル（画面左上） */}
         <span
           style={{
@@ -1081,7 +1044,6 @@ const FramesTool: React.FC = () => {
             className="mb-8"
             style={{
               background: '#e5e5e5',
-              boxShadow: '0 2px 12px #0001',
               borderRadius: 0,
               minWidth: 120,
               minHeight: 120,
@@ -1111,100 +1073,99 @@ const FramesTool: React.FC = () => {
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
           </div>
         </div>
-        {/* コントローラー: キャンバスの下に配置し、上から下にスライドイン */}
+        {/* Retro風コントローラーパネル: キャンバスの下に移動 */}
         <div
-          className="mt-0 transition-none"
-          style={{ width: mobileControllerW, margin: "0 auto", boxSizing: "border-box", paddingLeft: "12px", paddingRight: "12px", transition: 'none' }}
+          className="retro-panel"
+          style={{
+            background: '#c0c0c0',
+            borderTop: '2px solid #fff',
+            borderLeft: '2px solid #fff',
+            borderBottom: '2px solid #808080',
+            borderRight: '2px solid #808080',
+            borderRadius: 0,
+            padding: '12px 12px 10px 12px',
+            width: 260,
+            margin: '12px auto 36px auto', // 16px → 12px、下マージン16px → 36px
+            boxSizing: 'border-box',
+            boxShadow: '1px 1px 0 #000',
+          }}
         >
-          <div className="flex flex-col gap-y-8 w-full">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {/* Ratio */}
-            <div className="flex flex-col items-start">
-              <div className="text-left mb-0" style={{ fontSize: forceMobile ? '0.95rem' : '1.05rem', paddingLeft: forceMobile ? LABEL_OFFSETS_SP.ratio : LABEL_OFFSETS_PC.ratio }}>
-                <span className="font-bold mr-2" style={{ letterSpacing: '0.1em' }}>Ratio :</span>
-                <span style={{ letterSpacing: '0.1em' }}>{ratio}</span>
-              </div>
-              <div className="w-full">
-                <SliderWithLabels
-                  options={RATIOS}
-                  value={ratio}
-                  onChange={(newRatio) => {
-                    if (isPrintDisabled) {
-                      setIsPrintDisabled(false);
-                      setPrintStatus('idle');
-                    }
-                    setRatio(newRatio);
-                  }}
-                  label=""
-                  icons={[<RatioIcon ratio="1:1" />, <RatioIcon ratio="5:7" />, <RatioIcon ratio="9:16" />]}
-                  iconPosition="above"
-                  iconMargin={16}
-                  trackMargin={0}
-                  labelMarginLeft={0}
-                  labelMarginBottom={4}
-                  hideLabel={true}
-                />
-              </div>
+            <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Ratio</div>
+            <div style={{ marginBottom: 10 }}>
+              <SliderWithLabels
+                options={RATIOS}
+                value={ratio}
+                onChange={(newRatio) => {
+                  if (isPrintDisabled) {
+                    setIsPrintDisabled(false);
+                    setPrintStatus('idle');
+                  }
+                  setRatio(newRatio);
+                }}
+                label=""
+                icons={[<RatioIcon ratio="1:1" />, <RatioIcon ratio="5:7" />, <RatioIcon ratio="9:16" />]}
+                iconPosition="above"
+                iconMargin={8}
+                trackMargin={0}
+                labelMarginLeft={0}
+                labelMarginBottom={2}
+                hideLabel={true}
+              />
             </div>
             {/* Spaces */}
-            <div className="flex flex-col items-start">
-              <div className="text-left mb-0" style={{ fontSize: forceMobile ? '0.95rem' : '1.05rem', paddingLeft: forceMobile ? LABEL_OFFSETS_SP.spaces : LABEL_OFFSETS_PC.spaces }}>
-                <span className="font-bold mr-2" style={{ letterSpacing: '0.1em' }}>Spaces :</span>
-                <span style={{ letterSpacing: '0.1em' }}>{space}</span>
-              </div>
-              <div className="w-full">
-                <SliderWithLabels
-                  options={SPACES}
-                  value={space}
-                  onChange={(newSpace) => {
-                    if (isPrintDisabled) {
-                      setIsPrintDisabled(false);
-                      setPrintStatus('idle');
-                    }
-                    setSpace(newSpace);
-                  }}
-                  label=""
-                  iconPosition="none"
-                  trackMargin={0}
-                  labelMarginLeft={0}
-                  labelMarginBottom={4}
-                  hideLabel={true}
-                />
-              </div>
+            <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Spaces</div>
+            <div style={{ marginBottom: 10 }}>
+              <SliderWithLabels
+                options={SPACES}
+                value={space}
+                onChange={(newSpace) => {
+                  if (isPrintDisabled) {
+                    setIsPrintDisabled(false);
+                    setPrintStatus('idle');
+                  }
+                  setSpace(newSpace);
+                }}
+                label=""
+                iconPosition="none"
+                trackMargin={0}
+                labelMarginLeft={0}
+                labelMarginBottom={2}
+                hideLabel={true}
+              />
             </div>
             {/* Colour */}
-            <div className="flex flex-col items-start">
-              <div className="text-left mb-2" style={{ fontSize: forceMobile ? '0.95rem' : '1.05rem', paddingLeft: forceMobile ? LABEL_OFFSETS_SP.colour : LABEL_OFFSETS_PC.colour }}>
-                <span className="font-bold" style={{ letterSpacing: '0.1em' }}>Colour :</span>
-                <span className="ml-2" style={{ letterSpacing: '0.03em' }}>{COLOR_LABELS[color]}</span>
-              </div>
-              <div className="w-full">
-                <div className="flex flex-row gap-2 p-1 bg-white border border-b-[2px] border-r-[2px] border-t border-l border-t-white border-l-white border-b-gray-500 border-r-gray-500 shadow w-full rounded-none">
-                  {COLORS.map((c, i) => (
-                    <button
-                      key={c.key}
-                      className={`flex-1 h-7 border-[1px] ${color === c.key ? 'border-black' : 'border-gray-400'} transition-all`}
-                      style={{
-                        background:
-                          c.key === 'auto'
-                            ? (image
-                                ? autoColor
-                                : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
-                            : c.key === 'snap'
-                            ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
-                            : c.color
-                      }}
-                      onClick={() => handleColorChange(c.key as ColorType)}
-                      aria-label={c.key}
-                    />
-                  ))}
-                </div>
-              </div>
+            <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Colour</div>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 2 }}>
+              {COLORS.map((c, i) => (
+                <button
+                  key={c.key}
+                  className="flex-1 h-6 border-[1px] select-none"
+                  style={{
+                    background:
+                      c.key === 'auto'
+                        ? (image
+                            ? autoColor
+                            : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
+                        : c.key === 'snap'
+                        ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
+                        : c.color,
+                    border: color === c.key ? '2px solid #000' : '1px solid #888',
+                    borderRadius: 0,
+                    minWidth: 22,
+                    minHeight: 22,
+                    margin: 0,
+                    padding: 0,
+                  }}
+                  onClick={() => handleColorChange(c.key as ColorType)}
+                  aria-label={c.key}
+                />
+              ))}
             </div>
-          </div>
-          {/* ボタン群 */}
-          <div className="w-full flex justify-end gap-3 mt-8 max-w-[260px] mx-auto" style={{ marginBottom: 50 }}>
-            <Win98Button
-              onClick={() => {
+            {/* ボタン群: パネル内・下部に右寄せで配置 */}
+            <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
+              <RetroButton variant="cancel" onClick={() => {
                 setImage(null);
                 setColor('');
                 setAutoColor('#e53e3e');
@@ -1215,15 +1176,8 @@ const FramesTool: React.FC = () => {
                 setShowResetButton(false);
                 setPrintStatus('idle');
                 setIsPrintDisabled(false);
-              }}
-              className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-400 border-r-gray-400 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
-              style={{ transition: 'none' }}
-            >
-              {showResetButton ? 'Reset' : 'Cancel'}
-            </Win98Button>
-            <Win98Button
-              disabled={isPrintDisabled}
-              onClick={() => {
+              }}>{showResetButton ? 'Reset' : 'Cancel'}</RetroButton>
+              <RetroButton variant="primary" disabled={isPrintDisabled} onClick={() => {
                 if (!canvasRef.current || !image) return;
                 
                 // 高解像度出力用のキャンバスを作成
@@ -1339,12 +1293,8 @@ const FramesTool: React.FC = () => {
                   //   setPrintStatus('idle');
                   // }, 1500);
                 }, 'image/jpeg', 1.0);
-              }}
-              className="px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px"
-              style={{ transition: 'none' }}
-            >
-              {printStatus === 'done' ? 'Done!' : 'Print'}
-            </Win98Button>
+              }}>{printStatus === 'done' ? 'Done!' : 'Print'}</RetroButton>
+            </div>
           </div>
         </div>
       </div>
@@ -1354,7 +1304,7 @@ const FramesTool: React.FC = () => {
   // --- PC用レイアウト ---
   return (
     <div className="bg-[#F2F2F2] flex flex-row min-h-screen">
-      <Win98ErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
+      <RetroErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
       {/* タイトルカラム: 画面Y軸中央に配置 */}
       <div className="flex justify-center items-center w-[320px] h-screen">
         <Frames3DTitle frameColor={(!image && color === '') ? '#111' : getFrameColor(color, autoColor, snapPattern)} />
@@ -1366,14 +1316,20 @@ const FramesTool: React.FC = () => {
           <div style={{ width: '480px', display: 'flex', justifyContent: 'center' }}>
             <div
               className="relative flex justify-center items-center"
-              style={{ maxWidth: `${canvasW}px`, maxHeight: `${canvasH}px`, minWidth: 200, minHeight: 280, cursor: image ? 'default' : 'pointer' }}
+              style={{ 
+                maxWidth: `${canvasW}px`, 
+                maxHeight: `${canvasH}px`, 
+                minWidth: 200, 
+                minHeight: 280, 
+                cursor: image ? 'default' : 'pointer'
+              }}
               onClick={() => { if (!image) handlePlaceholderClick(); }}
             >
               <canvas
                 ref={canvasRef}
                 width={canvasW}
                 height={canvasH}
-                style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100%', height: '100%', boxShadow: '0 2px 12px #0001' }}
+                style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '100%', height: '100%' }}
               />
 
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" style={{ display: 'none' }} />
@@ -1381,20 +1337,33 @@ const FramesTool: React.FC = () => {
           </div>
           {/* コントローラー: 固定位置、60px間隔 */}
           <motion.div 
-            className="w-[225px] flex flex-col items-start" 
+            className="w-[260px] flex flex-col items-start" 
             style={{ marginLeft: '60px' }}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <div className="flex flex-col gap-y-8 w-full">
-              {/* Ratio */}
-              <div className="flex flex-col items-start">
-                <div className="text-left mb-0" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS_PC.ratio }}>
-                  <span className="font-bold mr-2" style={{ letterSpacing: '0.03em' }}>Ratio :</span>
-                  <span style={{ letterSpacing: '0.1em' }}>{ratio}</span>
-                </div>
-                <div className="flex justify-start w-full">
+            {/* Retro風コントローラーパネル */}
+            <div
+              className="retro-panel"
+              style={{
+                background: '#c0c0c0',
+                borderTop: '2px solid #fff',
+                borderLeft: '2px solid #fff',
+                borderBottom: '2px solid #808080',
+                borderRight: '2px solid #808080',
+                borderRadius: 0,
+                padding: '12px 12px 10px 12px',
+                width: 260,
+                margin: '40px 0 0 0',
+                boxSizing: 'border-box',
+                boxShadow: '1px 1px 0 #000',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {/* Ratio */}
+                <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Ratio</div>
+                <div style={{ marginBottom: 10 }}>
                   <SliderWithLabels
                     options={RATIOS}
                     value={ratio}
@@ -1408,21 +1377,16 @@ const FramesTool: React.FC = () => {
                     label=""
                     icons={[<RatioIcon ratio="1:1" />, <RatioIcon ratio="5:7" />, <RatioIcon ratio="9:16" />]}
                     iconPosition="above"
-                    iconMargin={16}
+                    iconMargin={8}
                     trackMargin={0}
                     labelMarginLeft={0}
-                    labelMarginBottom={4}
+                    labelMarginBottom={2}
                     hideLabel={true}
                   />
                 </div>
-              </div>
-              {/* Spaces */}
-              <div className="flex flex-col items-start">
-                <div className="text-left mb-0 ml-1.5" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS_PC.spaces }}>
-                  <span className="font-bold mr-2" style={{ letterSpacing: '0.015em' }}>Spaces :</span>
-                  <span style={{ letterSpacing: '0.1em' }}>{space}</span>
-                </div>
-                <div className="flex justify-start w-full">
+                {/* Spaces */}
+                <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Spaces</div>
+                <div style={{ marginBottom: 10 }}>
                   <SliderWithLabels
                     options={SPACES}
                     value={space}
@@ -1437,185 +1401,171 @@ const FramesTool: React.FC = () => {
                     iconPosition="none"
                     trackMargin={0}
                     labelMarginLeft={0}
-                    labelMarginBottom={4}
+                    labelMarginBottom={2}
                     hideLabel={true}
                   />
                 </div>
-              </div>
-              {/* Colour */}
-              <div className="flex flex-col items-start">
-                <div className="text-left mb-2" style={{ fontSize: '1.05rem', paddingLeft: LABEL_OFFSETS_PC.colour }}>
-                  <span className="font-bold" style={{ letterSpacing: '0.01em' }}>Colour :</span>
-                  <span className="ml-2" style={{ letterSpacing: '0.03em' }}>{COLOR_LABELS[color]}</span>
+                {/* Colour */}
+                <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Colour</div>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 2 }}>
+                  {COLORS.map((c, i) => (
+                    <button
+                      key={c.key}
+                      className="flex-1 h-6 border-[1px] select-none"
+                      style={{
+                        background:
+                          c.key === 'auto'
+                            ? (image
+                                ? autoColor
+                                : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
+                            : c.key === 'snap'
+                            ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
+                            : c.color,
+                        border: color === c.key ? '2px solid #000' : '1px solid #888',
+                        borderRadius: 0,
+                        minWidth: 22,
+                        minHeight: 22,
+                        margin: 0,
+                        padding: 0,
+                      }}
+                      onClick={() => handleColorChange(c.key as ColorType)}
+                      aria-label={c.key}
+                    />
+                  ))}
                 </div>
-                <div className="flex justify-start w-full">
-                  <div className="flex flex-row gap-2 p-1 bg-white border border-b-[2px] border-r-[2px] border-t border-l border-t-white border-l-white border-b-gray-500 border-r-gray-500 shadow w-full rounded-none">
-                    {COLORS.map((c, i) => (
-                      <button
-                        key={c.key}
-                        className={`flex-1 h-7 border-[1px] ${color === c.key ? 'border-black' : 'border-gray-400'} transition-all`}
-                        style={{
-                          background:
-                            c.key === 'auto'
-                              ? (image
-                                  ? autoColor
-                                  : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
-                              : c.key === 'snap'
-                              ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
-                              : c.color
-                        }}
-                        onClick={() => handleColorChange(c.key as ColorType)}
-                        aria-label={c.key}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Printボタン（編集項目群の下、セクション間マージン） */}
-            <div className="w-full flex justify-end gap-3 mt-12">
-              <Win98Button
-                onClick={() => {
-                  setImage(null);
-                  setColor('');
-                  setAutoColor('#e53e3e');
-                  setSnapPattern(1);
-                  setAutoPattern(1);
-                  setExifData(null);
-                  setCaptionLines(['', '']);
-                  setShowResetButton(false);
-                  setPrintStatus('idle');
-                  setIsPrintDisabled(false);
-                }}
-                className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-400 border-r-gray-400 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
-                style={{ transition: 'none' }}
-              >
-                {showResetButton ? 'Reset' : 'Cancel'}
-              </Win98Button>
-              <Win98Button
-                disabled={isPrintDisabled}
-                onClick={() => {
-                  if (!canvasRef.current || !image) return;
-                  
-                  // 高解像度出力用のキャンバスを作成
-                  const outputCanvas = document.createElement('canvas');
-                  const outputCtx = outputCanvas.getContext('2d');
-                  if (!outputCtx) return;
+                {/* ボタン群: パネル内・下部に右寄せで配置 */}
+                <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
+                  <RetroButton variant="cancel" onClick={() => {
+                    setImage(null);
+                    setColor('');
+                    setAutoColor('#e53e3e');
+                    setSnapPattern(1);
+                    setAutoPattern(1);
+                    setExifData(null);
+                    setCaptionLines(['', '']);
+                    setShowResetButton(false);
+                    setPrintStatus('idle');
+                    setIsPrintDisabled(false);
+                  }}>{showResetButton ? 'Reset' : 'Cancel'}</RetroButton>
+                  <RetroButton variant="primary" disabled={isPrintDisabled} onClick={() => {
+                    if (!canvasRef.current || !image) return;
+                    
+                    // 高解像度出力用のキャンバスを作成
+                    const outputCanvas = document.createElement('canvas');
+                    const outputCtx = outputCanvas.getContext('2d');
+                    if (!outputCtx) return;
 
-                  // === Ratioごとのアスペクト比設定 ===
-                  const ratioMap = {
-                    '1:1': [1, 1],
-                    '5:7': [5, 7],
-                    '9:16': [9, 16],
-                  };
-                  const [rw, rh] = ratioMap[ratio as keyof typeof ratioMap] || [1, 1];
+                    // === Ratioごとのアスペクト比設定 ===
+                    const ratioMap = {
+                      '1:1': [1, 1],
+                      '5:7': [5, 7],
+                      '9:16': [9, 16],
+                    };
+                    const [rw, rh] = ratioMap[ratio as keyof typeof ratioMap] || [1, 1];
 
-                  // 出力用の長辺サイズ（3000px）
-                  const outputLong = OUTPUT_LONG_SIDE;
-                  const aspect = rh / rw;
-                  const outputW = rw >= rh ? outputLong : Math.round(outputLong * rw / rh);
-                  const outputH = rh > rw ? outputLong : Math.round(outputLong * rh / rw);
+                    // 出力用の長辺サイズ（3000px）
+                    const outputLong = OUTPUT_LONG_SIDE;
+                    const aspect = rh / rw;
+                    const outputW = rw >= rh ? outputLong : Math.round(outputLong * rw / rh);
+                    const outputH = rh > rw ? outputLong : Math.round(outputLong * rh / rw);
 
-                  // 出力キャンバスのサイズ設定
-                  outputCanvas.width = outputW;
-                  outputCanvas.height = outputH;
+                    // 出力キャンバスのサイズ設定
+                    outputCanvas.width = outputW;
+                    outputCanvas.height = outputH;
 
-                  // 背景色を設定
-                  const frameColorOut = getFrameColor(color, autoColor, snapPattern);
-                  outputCtx.fillStyle = frameColorOut;
-                  outputCtx.fillRect(0, 0, outputW, outputH);
+                    // 背景色を設定
+                    const frameColorOut = getFrameColor(color, autoColor, snapPattern);
+                    outputCtx.fillStyle = frameColorOut;
+                    outputCtx.fillRect(0, 0, outputW, outputH);
 
-                  // 余白計算
-                  const { padTop: padTopOut, padLeft: padLeftOut, padRight: padRightOut, padBottom: padBottomOut } = getFramePadding(outputW, outputH, ratio, space);
-                  const drawWOut = outputW - padLeftOut - padRightOut;
-                  const drawHOut = outputH - padTopOut - padBottomOut;
+                    // 余白計算
+                    const { padTop: padTopOut, padLeft: padLeftOut, padRight: padRightOut, padBottom: padBottomOut } = getFramePadding(outputW, outputH, ratio, space);
+                    const drawWOut = outputW - padLeftOut - padRightOut;
+                    const drawHOut = outputH - padTopOut - padBottomOut;
 
-                  // 画像描画領域
-                  const imgAspect = image.width / image.height;
-                  const frameAspect = drawWOut / drawHOut;
+                    // 画像描画領域
+                    const imgAspect = image.width / image.height;
+                    const frameAspect = drawWOut / drawHOut;
 
-                  let targetW, targetH;
-                  if (imgAspect > frameAspect) {
-                    targetW = drawWOut;
-                    targetH = drawWOut / imgAspect;
-                  } else {
-                    targetH = drawHOut;
-                    targetW = drawHOut * imgAspect;
-                  }
-
-                  // 上詰め配置（padTopがそのまま上余白になる）
-                  const left = padLeftOut + (drawWOut - targetW) / 2;
-                  const top = padTopOut;
-
-                  // 画像を描画（クロップや拡大はしない）
-                  outputCtx.drawImage(image, left, top, targetW, targetH);
-
-                  // キャプション描画
-                  if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
-                  }
-
-                  // ダウンロード
-                  outputCanvas.toBlob(async (blob) => {
-                    if (!blob) return;
-                    const ratioMap = { '1:1': 'sq', '5:7': 'x', '9:16': 'ig' };
-                    const now = new Date();
-                    const yyyy = now.getFullYear();
-                    const mm = String(now.getMonth() + 1).padStart(2, '0');
-                    const dd = String(now.getDate()).padStart(2, '0');
-                    const hh = String(now.getHours()).padStart(2, '0');
-                    const min = String(now.getMinutes()).padStart(2, '0');
-                    const ratioShort = ratioMap[ratio] || 'x';
-                    const filename = `frames-${yyyy}-${mm}${dd}-${hh}${min}-${ratioShort}.jpeg`;
-
-                    // Fileオブジェクトを先に作る
-                    const file = new File([blob], filename, { type: 'image/jpeg' });
-
-                    // スマホ＆Web Share API（files対応）判定
-                    if (
-                      isMobileDevice() &&
-                      navigator.canShare &&
-                      navigator.canShare({ files: [file] })
-                    ) {
-                      try {
-                        await navigator.share({
-                          files: [file],
-                          title: 'Frames Photo',
-                          text: 'Check out this photo frame!',
-                        });
-                        // 共有成功時もPCと同じくロック＆Reset待ちにする
-                        setPrintStatus('done');
-                        setShowResetButton(true);
-                        setIsPrintDisabled(true);
-                        return;
-                      } catch (err) {
-                        // 共有キャンセルやエラー時はダウンロードにフォールバック
-                      }
+                    let targetW, targetH;
+                    if (imgAspect > frameAspect) {
+                      targetW = drawWOut;
+                      targetH = drawWOut / imgAspect;
+                    } else {
+                      targetH = drawHOut;
+                      targetW = drawHOut * imgAspect;
                     }
 
-                    // ダウンロード処理（PCや非対応端末、共有失敗時）
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
+                    // 上詰め配置（padTopがそのまま上余白になる）
+                    const left = padLeftOut + (drawWOut - targetW) / 2;
+                    const top = padTopOut;
 
-                                      setPrintStatus('done');
-                  setShowResetButton(true);
-                  setIsPrintDisabled(true);
-                  // setTimeout(() => {
-                  //   setPrintStatus('idle');
-                  // }, 1500);
-                  }, 'image/jpeg', 1.0);
-                }}
-                className="px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px"
-                style={{ transition: 'none' }}
-              >
-                {printStatus === 'done' ? 'Done!' : 'Print'}
-              </Win98Button>
+                    // 画像を描画（クロップや拡大はしない）
+                    outputCtx.drawImage(image, left, top, targetW, targetH);
+
+                    // キャプション描画
+                    if (captionLines[0] || captionLines[1]) {
+                      drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    }
+
+                    // ダウンロード
+                    outputCanvas.toBlob(async (blob) => {
+                      if (!blob) return;
+                      const ratioMap = { '1:1': 'sq', '5:7': 'x', '9:16': 'ig' };
+                      const now = new Date();
+                      const yyyy = now.getFullYear();
+                      const mm = String(now.getMonth() + 1).padStart(2, '0');
+                      const dd = String(now.getDate()).padStart(2, '0');
+                      const hh = String(now.getHours()).padStart(2, '0');
+                      const min = String(now.getMinutes()).padStart(2, '0');
+                      const ratioShort = ratioMap[ratio] || 'x';
+                      const filename = `frames-${yyyy}-${mm}${dd}-${hh}${min}-${ratioShort}.jpeg`;
+
+                      // Fileオブジェクトを先に作る
+                      const file = new File([blob], filename, { type: 'image/jpeg' });
+
+                      // スマホ＆Web Share API（files対応）判定
+                      if (
+                        isMobileDevice() &&
+                        navigator.canShare &&
+                        navigator.canShare({ files: [file] })
+                      ) {
+                        try {
+                          await navigator.share({
+                            files: [file],
+                            title: 'Frames Photo',
+                            text: 'Check out this photo frame!',
+                          });
+                          // 共有成功時もPCと同じくロック＆Reset待ちにする
+                          setPrintStatus('done');
+                          setShowResetButton(true);
+                          setIsPrintDisabled(true);
+                          return;
+                        } catch (err) {
+                          // 共有キャンセルやエラー時はダウンロードにフォールバック
+                        }
+                      }
+
+                      // ダウンロード処理（PCや非対応端末、共有失敗時）
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+
+                      setPrintStatus('done');
+                      setShowResetButton(true);
+                      setIsPrintDisabled(true);
+                      // setTimeout(() => {
+                      //   setPrintStatus('idle');
+                      // }, 1500);
+                    }, 'image/jpeg', 1.0);
+                  }}>{printStatus === 'done' ? 'Done!' : 'Print'}</RetroButton>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
