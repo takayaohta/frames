@@ -668,6 +668,54 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
   return <div ref={mountRef} style={{ width: 400, height: 120 }} />;
 };
 
+// Win98風ボタンの共通コンポーネント
+const Win98Button: React.FC<{
+  disabled?: boolean;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  children: React.ReactNode;
+  type?: 'button' | 'submit' | 'reset';
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({ disabled, onClick, children, type = 'button', className = '', style = {} }) => (
+  <button
+    type={type}
+    disabled={disabled}
+    onClick={onClick}
+    className={disabled ? '' : className}
+    style={
+      disabled
+        ? {
+            display: 'inline-block',
+            background: '#dfdfdf',
+            color: '#7a8591',
+            border: '2px solid #888',
+            borderTop: '2px solid #fff',
+            borderLeft: '2px solid #fff',
+            borderBottom: '2px solid #444',
+            borderRight: '2px solid #444',
+            boxShadow: '1px 1px 0 #fff inset, -1px -1px 0 #444 inset',
+            cursor: 'default',
+            minWidth: 80,
+            minHeight: 28,
+            padding: '0.25rem 1rem',
+            borderRadius: 0,
+            fontSize: '0.875rem',
+            fontFamily: 'inherit',
+            fontWeight: 400,
+            verticalAlign: 'middle',
+            boxSizing: 'border-box',
+            textAlign: 'center',
+            textShadow: '1px 1px 0 #fff',
+            opacity: 1,
+            ...style,
+          }
+        : { transition: 'none', ...style }
+    }
+  >
+    {children}
+  </button>
+);
+
 const FramesTool: React.FC = () => {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [space, setSpace] = useState<SpaceType>('M');
@@ -1155,9 +1203,7 @@ const FramesTool: React.FC = () => {
           </div>
           {/* ボタン群 */}
           <div className="w-full flex justify-end gap-3 mt-8 max-w-[260px] mx-auto" style={{ marginBottom: 50 }}>
-            <button
-              className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-400 border-r-gray-400 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
-              style={{ transition: 'none' }}
+            <Win98Button
               onClick={() => {
                 setImage(null);
                 setColor('');
@@ -1170,16 +1216,12 @@ const FramesTool: React.FC = () => {
                 setPrintStatus('idle');
                 setIsPrintDisabled(false);
               }}
+              className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-400 border-r-gray-400 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
+              style={{ transition: 'none' }}
             >
               {showResetButton ? 'Reset' : 'Cancel'}
-            </button>
-            <button
-              className={`px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none ${
-                isPrintDisabled 
-                  ? 'bg-[#c0c0c0] border-t-gray-400 border-l-gray-400 border-b-gray-500 border-r-gray-500 text-gray-500 cursor-not-allowed' 
-                  : 'bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px'
-              }`}
-              style={{ transition: 'none' }}
+            </Win98Button>
+            <Win98Button
               disabled={isPrintDisabled}
               onClick={() => {
                 if (!canvasRef.current || !image) return;
@@ -1298,9 +1340,11 @@ const FramesTool: React.FC = () => {
                   // }, 1500);
                 }, 'image/jpeg', 1.0);
               }}
+              className="px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px"
+              style={{ transition: 'none' }}
             >
               {printStatus === 'done' ? 'Done!' : 'Print'}
-            </button>
+            </Win98Button>
           </div>
         </div>
       </div>
@@ -1430,9 +1474,7 @@ const FramesTool: React.FC = () => {
             </div>
             {/* Printボタン（編集項目群の下、セクション間マージン） */}
             <div className="w-full flex justify-end gap-3 mt-12">
-              <button
-                className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-400 border-r-gray-400 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
-                style={{ transition: 'none' }}
+              <Win98Button
                 onClick={() => {
                   setImage(null);
                   setColor('');
@@ -1445,35 +1487,12 @@ const FramesTool: React.FC = () => {
                   setPrintStatus('idle');
                   setIsPrintDisabled(false);
                 }}
+                className="px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-400 border-r-gray-400 text-black text-sm font-normal shadow-sm active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none"
+                style={{ transition: 'none' }}
               >
                 {showResetButton ? 'Reset' : 'Cancel'}
-              </button>
-              <button
-                className={isPrintDisabled ? '' : 'px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px'}
-                style={isPrintDisabled ? {
-                  display: 'inline-block',
-                  background: '#dfdfdf',
-                  color: '#a0a0a0',
-                  border: '2px solid #888',
-                  borderTop: '2px solid #fff',
-                  borderLeft: '2px solid #fff',
-                  borderBottom: '2px solid #444',
-                  borderRight: '2px solid #444',
-                  boxShadow: '1px 1px 0 #fff inset, -1px -1px 0 #444 inset',
-                  cursor: 'default',
-                  minWidth: 80,
-                  minHeight: 28,
-                  padding: '0.25rem 1rem',
-                  borderRadius: 0,
-                  fontSize: '0.875rem',
-                  fontFamily: 'inherit',
-                  fontWeight: 400,
-                  verticalAlign: 'middle',
-                  boxSizing: 'border-box',
-                  textAlign: 'center',
-                  textShadow: '1px 1px 0 #fff',
-                  opacity: 1,
-                } : { transition: 'none' }}
+              </Win98Button>
+              <Win98Button
                 disabled={isPrintDisabled}
                 onClick={() => {
                   if (!canvasRef.current || !image) return;
@@ -1592,9 +1611,11 @@ const FramesTool: React.FC = () => {
                   // }, 1500);
                   }, 'image/jpeg', 1.0);
                 }}
+                className="px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px"
+                style={{ transition: 'none' }}
               >
                 {printStatus === 'done' ? 'Done!' : 'Print'}
-              </button>
+              </Win98Button>
             </div>
           </motion.div>
         </div>
