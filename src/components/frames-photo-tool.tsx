@@ -1458,7 +1458,7 @@ const FramesTool: React.FC = () => {
                 {showResetButton ? 'Reset' : 'Cancel'}
               </button>
               <button
-                className={isPrintDisabled ? '' : 'px-4 py-1 bg-[#dfdfdf] border border-b-[3px] border-r-[3px] border-t border-l border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black text-sm font-normal shadow active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px select-none min-w-[80px] min-h-[28px] transition-none rounded-none'}
+                className={isPrintDisabled ? '' : 'px-4 py-1 border border-b-[3px] border-r-[3px] border-t border-l text-sm font-normal shadow select-none min-w-[80px] min-h-[28px] transition-none rounded-none bg-[#dfdfdf] border-t-white border-l-white border-b-gray-700 border-r-gray-700 text-black active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white active:translate-x-px active:translate-y-px'}
                 style={isPrintDisabled ? {
                   display: 'inline-block',
                   background: '#dfdfdf',
