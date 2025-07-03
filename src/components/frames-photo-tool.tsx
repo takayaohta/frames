@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import EXIF from 'exif-js';
 import { getCaptionLines, ExifData } from '../utils/caption';
 import { getCaptionYOffset, isSupportedAspectRatio } from '../utils/caption-position';
+import { isFilmScanner, isFilmScanExif } from '../utils/film-scanner';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
@@ -257,9 +258,9 @@ function getContrastColor(color: string) {
 
 // キャプションのサイズとマージン（出力画像基準のスケーリング）
 const CAPTION_STYLE = {
-  font1: 0.025,    // 出力画像の短辺の2.5%
-  font2: 0.02,  // 出力画像の短辺の2%
-  lineGap: 0.006, // 出力画像の短辺の1%
+  font1: 0.023,    // 出力画像の短辺の2.5%
+  font2: 0.019,  // 出力画像の短辺の2%
+  lineGap: 0.007, // 出力画像の短辺の1%
 };
 
 // 1文字ずつ描画して字間を調整する関数
@@ -301,16 +302,8 @@ function drawCaption(
   const imageBottom = imageDrawTop + imageDrawHeight;
   
   // --- キャプションY座標計算 ---
-  // 1:1/5:7は余白のY軸中央、9:16は写真下端+マージンに分岐（将来のため明示的に分ける）
-  let yStart: number;
-  if (ratio === '9:16') {
-    // 画像の下端から20px下にキャプション
-    const margin = 15; // px固定
-    yStart = imageDrawTop + imageDrawHeight + margin;
-  } else {
-    // 1:1/5:7は従来通り余白のY軸中央
-    yStart = height - padBottom / 2 - totalHeight / 2 + getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: height }) * scale;
-  }
+  // すべてのratioでデジタル用の位置設定を使用
+  const yStart = height - padBottom / 2 - totalHeight / 2 + getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: height }) * scale;
   
   // Snap色の特別設定
   const isSnapColor = frameColor === SNAP_COLORS.pattern1 || frameColor === SNAP_COLORS.pattern2;
@@ -334,7 +327,7 @@ function drawCaption(
   }
   
   // 字間設定
-  const letterSpacing1 = 0.2; // 1行目（Shot on/機種名）
+  const letterSpacing1 = 0.4; // 1行目（Shot on/機種名）- 字間を広げる
   const letterSpacing2 = 0.4; // 2行目
   
   // 1行目は不透明で描画
@@ -347,8 +340,8 @@ function drawCaption(
     ctx.font = `400 ${baseFontPx1}px 'KT Flux 100', Arial`;
     const shotOnWidth = ctx.measureText(shotOn).width + (shotOn.length - 1) * letterSpacing1;
     
-    // 機種名はKT Flux 100 SemiBoldで描画
-    ctx.font = `600 ${baseFontPx1}px 'KT Flux 100', Arial`;
+    // 機種名はKT Flux 100 Mediumで描画
+    ctx.font = `500 ${baseFontPx1}px 'KT Flux 100', Arial`;
     const cameraWidth = ctx.measureText(cameraName).width + (cameraName.length - 1) * letterSpacing1;
     
     const totalWidth = shotOnWidth + cameraWidth;
@@ -359,8 +352,8 @@ function drawCaption(
     ctx.fillStyle = firstLineColor;
     drawTextWithLetterSpacing(ctx, shotOn, xStart, yStart, letterSpacing1);
     
-    // 機種名をKT Flux 100 SemiBoldで描画
-    ctx.font = `600 ${baseFontPx1}px 'KT Flux 100', Arial`;
+    // 機種名をKT Flux 100 Mediumで描画
+    ctx.font = `500 ${baseFontPx1}px 'KT Flux 100', Arial`;
     ctx.fillStyle = firstLineColor;
     drawTextWithLetterSpacing(ctx, cameraName, xStart + shotOnWidth, yStart, letterSpacing1);
   }
@@ -663,6 +656,7 @@ const FramesTool: React.FC = () => {
   const [controllerVisible, setControllerVisible] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [isPrintDisabled, setIsPrintDisabled] = useState(false);
+  const [isFilmScannerImage, setIsFilmScannerImage] = useState(false); // フィルムスキャナー画像の判定結果
 
   // ドラッグ機能用のstate
   const [panelPos, setPanelPos] = useState({ x: 0, y: 0 }); // 初期値は0,0（後で計算で設定）
@@ -783,28 +777,24 @@ const FramesTool: React.FC = () => {
     return `rgb(${r},${g},${b})`;
   }, []);
 
-  // 画像アップロード
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // 画像ファイルをFileListで受け取って処理する関数
+  const handleFilesUpload = useCallback((files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const file = files[0];
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new window.Image();
       img.onload = () => {
-        // アスペクト比チェック
         if (!isSupportedAspectRatio(img.width, img.height)) {
           setShowErrorPopup(true);
           return;
         }
-        
         setImage(img);
         setAutoColor(getDominantColor(img));
-        setAutoPattern(1); // auto色はパターン1から開始
-        // 事前に選択されたフレームカラーを保持（Whiteにリセットしない）
+        setAutoPattern(1);
         if (!color) {
-          setColor('white'); // 初回のみデフォルトでWhite
+          setColor('white');
         }
-        // Exif取得
         EXIF.getData(img as any, function(this: any) {
           const exif: ExifData = {
             Make: EXIF.getTag(this, 'Make'),
@@ -812,15 +802,33 @@ const FramesTool: React.FC = () => {
             ISO: EXIF.getTag(this, 'ISOSpeedRatings'),
             FNumber: EXIF.getTag(this, 'FNumber') ? Number(EXIF.getTag(this, 'FNumber').numerator / EXIF.getTag(this, 'FNumber').denominator) : undefined,
             ExposureTime: EXIF.getTag(this, 'ExposureTime') ? Number(EXIF.getTag(this, 'ExposureTime').numerator / EXIF.getTag(this, 'ExposureTime').denominator) : undefined,
+            Software: EXIF.getTag(this, 'Software'), // 追加: Softwareフィールド
           };
           setExifData(exif);
-          setCaptionLines(getCaptionLines(exif));
+          
+          // フィルムスキャン画像の判定（MakeまたはSoftware）
+          const isFilmScannerDetected = isFilmScanExif(exif.Make, exif.Software);
+          setIsFilmScannerImage(isFilmScannerDetected);
+          
+          // フィルムスキャナーまたはNegative Lab Proの場合は手動入力モードを有効化
+          if (isFilmScannerDetected) {
+            setManualCamera('');
+            setManualPlace('');
+            setCaptionLines(['', '']);
+          } else {
+            setCaptionLines(getCaptionLines(exif));
+          }
         });
       };
       img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
   }, [getDominantColor, color]);
+
+  // input[type=file]用
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFilesUpload(e.target.files);
+  }, [handleFilesUpload]);
 
   // プレイスホルダークリックでファイル選択
   const handlePlaceholderClick = () => {
@@ -1007,9 +1015,8 @@ const FramesTool: React.FC = () => {
 
   // 判定が終わるまで何も描画しない
   useEffect(() => {
-    if (forceMobile === null) return;
     drawCanvas();
-  }, [color, autoColor, snapPattern, retrobluePattern, image, ratio, space, canvasW, canvasH, forceMobile]);
+  }, [image, space, ratio, color, autoColor, canvasW, canvasH, captionLines, snapPattern, retrobluePattern]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1164,6 +1171,21 @@ const FramesTool: React.FC = () => {
   // スマホ用コントローラー幅（プレビューよりやや狭いくらい）
   const mobileControllerW = Math.max(mobilePreviewW * 0.85, 280);
 
+  // 1. state追加
+  const [manualCamera, setManualCamera] = useState('');
+  const [manualPlace, setManualPlace] = useState('');
+  const isManualMode = isFilmScannerImage; // フィルムスキャナー画像の場合のみ手入力
+
+  // 2. 手入力時はcaptionLinesを手動で更新
+  useEffect(() => {
+    if (isManualMode) {
+      setCaptionLines([
+        manualCamera ? `Shot on ${manualCamera}` : '',
+        manualPlace || ''
+      ]);
+    }
+  }, [manualCamera, manualPlace, isManualMode]);
+
   if (forceMobile) {
     // --- スマホ用レイアウト ---
     return (
@@ -1287,7 +1309,7 @@ const FramesTool: React.FC = () => {
             </div>
             {/* Colour */}
             <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Colour</div>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 2 }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 20 }}>
               {COLORS.map((c, i) => (
                 <button
                   key={c.key}
@@ -1315,7 +1337,66 @@ const FramesTool: React.FC = () => {
                 />
               ))}
             </div>
-            {/* ボタン群: パネル内・下部に右寄せで配置 */}
+            {/* Caption（Colourの下・ボタン群の上、マージンあり） */}
+            {isManualMode && (
+              <div style={{ width: '100%' }}>
+                <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Caption</div>
+                {/* Win98風入力フィールド */}
+                <input
+                  type="text"
+                  value={manualCamera}
+                  onChange={e => setManualCamera(e.target.value)}
+                  placeholder="Camera"
+                  className="retro-input mb-2"
+                  style={{
+                    width: '100%',
+                    height: '20px',
+                    background: '#fff',
+                    border: '2px inset #c0c0c0',
+                    borderTop: '2px solid #808080',
+                    borderLeft: '2px solid #808080',
+                    borderBottom: '2px solid #fff',
+                    borderRight: '2px solid #fff',
+                    borderRadius: 0,
+                    padding: '1px 4px',
+                    fontSize: '13px',
+                    fontFamily: 'system-ui, sans-serif',
+                    lineHeight: '16px',
+                    color: '#000',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  maxLength={40}
+                />
+                <input
+                  type="text"
+                  value={manualPlace}
+                  onChange={e => setManualPlace(e.target.value)}
+                  placeholder="Place"
+                  className="retro-input"
+                  style={{
+                    width: '100%',
+                    height: '20px',
+                    background: '#fff',
+                    border: '2px inset #c0c0c0',
+                    borderTop: '2px solid #808080',
+                    borderLeft: '2px solid #808080',
+                    borderBottom: '2px solid #fff',
+                    borderRight: '2px solid #fff',
+                    borderRadius: 0,
+                    padding: '1px 4px',
+                    fontSize: '13px',
+                    fontFamily: 'system-ui, sans-serif',
+                    lineHeight: '16px',
+                    color: '#000',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  maxLength={40}
+                />
+              </div>
+            )}
+            {/* ボタン群 */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
               <RetroButton variant="cancel" onClick={() => {
                 setImage(null);
@@ -1326,6 +1407,7 @@ const FramesTool: React.FC = () => {
                 setAutoPattern(1);
                 setExifData(null);
                 setCaptionLines(['', '']);
+                setIsFilmScannerImage(false); // フィルムスキャナー判定もリセット
                 setShowResetButton(false);
                 setPrintStatus('idle');
                 setIsPrintDisabled(false);
@@ -1492,6 +1574,11 @@ const FramesTool: React.FC = () => {
               cursor: image ? 'default' : 'pointer'
             }}
             onClick={() => { if (!image) handlePlaceholderClick(); }}
+            onDragOver={e => { e.preventDefault(); }}
+            onDrop={e => {
+              e.preventDefault();
+              handleFilesUpload(e.dataTransfer.files);
+            }}
           >
             <canvas
               ref={canvasRef}
@@ -1600,7 +1687,7 @@ const FramesTool: React.FC = () => {
               </div>
               {/* Colour */}
               <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Colour</div>
-              <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 2 }}>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 20 }}>
                 {COLORS.map((c, i) => (
                   <button
                     key={c.key}
@@ -1628,7 +1715,66 @@ const FramesTool: React.FC = () => {
                   />
                 ))}
               </div>
-              {/* ボタン群: パネル内・下部に右寄せで配置 */}
+              {/* Caption（Colourの下・ボタン群の上、マージンあり） */}
+              {isManualMode && (
+                <div style={{ width: '100%' }}>
+                  <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Caption</div>
+                  {/* Win98風入力フィールド */}
+                  <input
+                    type="text"
+                    value={manualCamera}
+                    onChange={e => setManualCamera(e.target.value)}
+                    placeholder="Camera"
+                    className="retro-input mb-2"
+                    style={{
+                      width: '100%',
+                      height: '20px',
+                      background: '#fff',
+                      border: '2px inset #c0c0c0',
+                      borderTop: '2px solid #808080',
+                      borderLeft: '2px solid #808080',
+                      borderBottom: '2px solid #fff',
+                      borderRight: '2px solid #fff',
+                      borderRadius: 0,
+                      padding: '1px 4px',
+                      fontSize: '13px',
+                      fontFamily: 'system-ui, sans-serif',
+                      lineHeight: '16px',
+                      color: '#000',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                    maxLength={40}
+                  />
+                  <input
+                    type="text"
+                    value={manualPlace}
+                    onChange={e => setManualPlace(e.target.value)}
+                    placeholder="Place"
+                    className="retro-input"
+                    style={{
+                      width: '100%',
+                      height: '20px',
+                      background: '#fff',
+                      border: '2px inset #c0c0c0',
+                      borderTop: '2px solid #808080',
+                      borderLeft: '2px solid #808080',
+                      borderBottom: '2px solid #fff',
+                      borderRight: '2px solid #fff',
+                      borderRadius: 0,
+                      padding: '1px 4px',
+                      fontSize: '13px',
+                      fontFamily: 'system-ui, sans-serif',
+                      lineHeight: '16px',
+                      color: '#000',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                    maxLength={40}
+                  />
+                </div>
+              )}
+              {/* ボタン群 */}
               <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
                 <RetroButton variant="cancel" onClick={() => {
                   setImage(null);
@@ -1639,6 +1785,7 @@ const FramesTool: React.FC = () => {
                   setAutoPattern(1);
                   setExifData(null);
                   setCaptionLines(['', '']);
+                  setIsFilmScannerImage(false); // フィルムスキャナー判定もリセット
                   setShowResetButton(false);
                   setPrintStatus('idle');
                   setIsPrintDisabled(false);
@@ -1835,7 +1982,7 @@ const FramesTool: React.FC = () => {
             </div>
             {/* Colour */}
             <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Colour</div>
-            <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 2 }}>
+            <div style={{ display: 'flex', flexDirection: 'row', gap: 4, marginBottom: 20 }}>
               {COLORS.map((c, i) => (
                 <button
                   key={c.key}
@@ -1863,7 +2010,66 @@ const FramesTool: React.FC = () => {
                 />
               ))}
             </div>
-            {/* ボタン群: パネル内・下部に右寄せで配置 */}
+            {/* Caption（Colourの下・ボタン群の上、マージンあり） */}
+            {isManualMode && (
+              <div style={{ width: '100%' }}>
+                <div className="retro-label" style={{ fontSize: 13, fontFamily: 'system-ui, sans-serif', marginBottom: 2, textAlign: 'left', justifyContent: 'flex-start', display: 'flex' }}>Caption</div>
+                {/* Win98風入力フィールド */}
+                <input
+                  type="text"
+                  value={manualCamera}
+                  onChange={e => setManualCamera(e.target.value)}
+                  placeholder="Camera"
+                  className="retro-input mb-2"
+                  style={{
+                    width: '100%',
+                    height: '20px',
+                    background: '#fff',
+                    border: '2px inset #c0c0c0',
+                    borderTop: '2px solid #808080',
+                    borderLeft: '2px solid #808080',
+                    borderBottom: '2px solid #fff',
+                    borderRight: '2px solid #fff',
+                    borderRadius: 0,
+                    padding: '1px 4px',
+                    fontSize: '13px',
+                    fontFamily: 'system-ui, sans-serif',
+                    lineHeight: '16px',
+                    color: '#000',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  maxLength={40}
+                />
+                <input
+                  type="text"
+                  value={manualPlace}
+                  onChange={e => setManualPlace(e.target.value)}
+                  placeholder="Place"
+                  className="retro-input"
+                  style={{
+                    width: '100%',
+                    height: '20px',
+                    background: '#fff',
+                    border: '2px inset #c0c0c0',
+                    borderTop: '2px solid #808080',
+                    borderLeft: '2px solid #808080',
+                    borderBottom: '2px solid #fff',
+                    borderRight: '2px solid #fff',
+                    borderRadius: 0,
+                    padding: '1px 4px',
+                    fontSize: '13px',
+                    fontFamily: 'system-ui, sans-serif',
+                    lineHeight: '16px',
+                    color: '#000',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  maxLength={40}
+                />
+              </div>
+            )}
+            {/* ボタン群 */}
             <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
               <RetroButton variant="cancel" onClick={() => {
                 setImage(null);
@@ -1874,6 +2080,7 @@ const FramesTool: React.FC = () => {
                 setAutoPattern(1);
                 setExifData(null);
                 setCaptionLines(['', '']);
+                setIsFilmScannerImage(false); // フィルムスキャナー判定もリセット
                 setShowResetButton(false);
                 setPrintStatus('idle');
                 setIsPrintDisabled(false);

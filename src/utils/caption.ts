@@ -6,6 +6,7 @@ export interface ExifData {
   ISO?: number;
   FNumber?: number;
   ExposureTime?: number;
+  Software?: string;
 }
 
 // 製造元名の正規化
