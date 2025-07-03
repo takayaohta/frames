@@ -887,10 +887,10 @@ const FramesTool: React.FC = () => {
       return;
     }
     
-    const rect = e.currentTarget.getBoundingClientRect();
+    // パネル全体の位置を基準にしたオフセット計算
     setOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      x: e.clientX - panelPos.x,
+      y: e.clientY - panelPos.y
     });
     setDragging(true);
     e.preventDefault();
@@ -1535,11 +1535,9 @@ const FramesTool: React.FC = () => {
             style={{ 
               left: panelPos.x, 
               top: panelPos.y,
-              cursor: dragging ? 'grabbing' : 'grab',
               width: 260,
               transition: dragging ? 'none' : 'left 0.05s linear, top 0.05s linear'
             }}
-            // パネル全体のドラッグは無効化（ハンドル部分のみでドラッグ）
           >
             <div
               className="retro-panel"
@@ -1567,7 +1565,7 @@ const FramesTool: React.FC = () => {
                     borderBottom: '1px solid #808080',
                     margin: '-12px -12px 8px -12px',
                     padding: '2px 8px',
-                    cursor: 'grab',
+                    cursor: dragging ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     fontSize: '11px',
                     color: '#000',
