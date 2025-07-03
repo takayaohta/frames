@@ -848,7 +848,10 @@ const FramesTool: React.FC = () => {
         setImage(img);
         setAutoColor(getDominantColor(img));
         setAutoPattern(1); // auto色はパターン1から開始
-        setColor('white');
+        // 事前に選択されたフレームカラーを保持（Whiteにリセットしない）
+        if (!color) {
+          setColor('white'); // 初回のみデフォルトでWhite
+        }
         // Exif取得
         EXIF.getData(img as any, function(this: any) {
           const exif: ExifData = {
@@ -865,7 +868,7 @@ const FramesTool: React.FC = () => {
       img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
-  }, [getDominantColor, isSupportedAspectRatio]);
+  }, [getDominantColor, isSupportedAspectRatio, color]);
 
   // プレイスホルダークリックでファイル選択
   const handlePlaceholderClick = () => {
@@ -1203,10 +1206,10 @@ const FramesTool: React.FC = () => {
         {/* タイトル（画面左上） */}
         <span
           style={{
-            fontSize: '1.1rem',
-            fontWeight: 600,
+            fontSize: '0.9rem',
+            fontWeight: 300,
             color: '#111',
-            fontFamily: 'KT Flux 2 100 SemiBold, sans-serif',
+            fontFamily: 'KT Flux 2 100 Light, sans-serif',
             marginTop: 16,
             marginLeft: `calc(50% - ${canvasW / 2}px)`,
             marginBottom: 0,
@@ -1348,7 +1351,7 @@ const FramesTool: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
               <RetroButton variant="cancel" onClick={() => {
                 setImage(null);
-                setColor('');
+                setColor('white'); // 空文字列ではなく'white'にリセット
                 setAutoColor('#e53e3e');
                 setSnapPattern(1);
                 setAutoPattern(1);
@@ -1656,7 +1659,7 @@ const FramesTool: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
                 <RetroButton variant="cancel" onClick={() => {
                   setImage(null);
-                  setColor('');
+                  setColor('white'); // 空文字列ではなく'white'にリセット
                   setAutoColor('#e53e3e');
                   setSnapPattern(1);
                   setAutoPattern(1);
@@ -1888,7 +1891,7 @@ const FramesTool: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginTop: 28, justifyContent: 'flex-end', width: '100%' }}>
               <RetroButton variant="cancel" onClick={() => {
                 setImage(null);
-                setColor('');
+                setColor('white'); // 空文字列ではなく'white'にリセット
                 setAutoColor('#e53e3e');
                 setSnapPattern(1);
                 setAutoPattern(1);
