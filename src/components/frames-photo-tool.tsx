@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import EXIF from 'exif-js';
 import { getCaptionLines, ExifData } from '../utils/caption';
+import { getCaptionYOffset, isSupportedAspectRatio } from '../utils/caption-position';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader';
@@ -214,63 +215,7 @@ const minPadBottomTable: Record<string, Record<string, number>> = {
   '9:16': { S: 0.17, M: 0.17, L: 0.17 },
 };
 
-// ===============================
-// キャプションYオフセット設定
-// ===============================
 
-// [1] ★ ベースシステム X Half 用の 3:4 画像用テーブル
-export const CAPTION_Y_OFFSET_PX: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: 0, L: 0 },
-  '5:7': { S: -25, M: -31, L: -130 },
-  '9:16': { S: -20, M: -580, L: -40 },
-};
-
-// [2] ★★ 追加調整 : 5:7画像アップロード時
-export const CAPTION_Y_OFFSET_PX_57IMG: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: 0, L: 0 },
-  '5:7': { S: -10, M: -60, L: -30 }, // Spacesごとに細かく調整
-  '9:16': { S: -20, M: -20, L: -40 },
-};
-
-// [3] ★★★ 今後追加するかもしれない細かい分岐用テーブル（例: 3:4画像用など）
-// export const CAPTION_Y_OFFSET_PX_34IMG: Record<string, Record<string, number>> = { ... };
-
-
-// ===============================
-// キャプションYオフセット計算関数
-// ===============================
-type YOffsetParams = {
-  ratio: string;
-  space: string;
-  imageWidth?: number;
-  imageHeight?: number;
-  canvasH?: number;
-};
-
-export function getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH }: YOffsetParams): number {
-  // 1. 5:7画像アップロード時は専用テーブルを使う
-  if (
-    imageWidth && imageHeight &&
-    Math.abs(imageWidth / imageHeight - 5 / 7) < 0.01
-  ) {
-    return CAPTION_Y_OFFSET_PX_57IMG[ratio]?.[space] ?? 0;
-  }
-  // 2. 今後追加する分岐があればここに
-  // if (imageWidth && imageHeight && ... ) { ... }
-  // 3. それ以外はベーステーブル
-  let base = CAPTION_Y_OFFSET_PX[ratio]?.[space] ?? 0;
-  // スマホ補正: 1:1 S, 5:7 S のときだけcanvasHがPC基準より小さい場合指定px上げる
-  if (ratio === '1:1' && space === 'S' && canvasH && canvasH < 480) {
-    base -= 10;
-  }
-  if (ratio === '5:7' && space === 'S' && canvasH && canvasH < 672) {
-    base -= 8;
-  }
-  return base;
-}
-// ===============================
-// ここまでYオフセット関連
-// ===============================
 
 // Colour名ラベル
 const COLOR_LABELS: Record<ColorType, string> = {
@@ -359,8 +304,8 @@ function drawCaption(
   // 1:1/5:7は余白のY軸中央、9:16は写真下端+マージンに分岐（将来のため明示的に分ける）
   let yStart: number;
   if (ratio === '9:16') {
-    // 9:16は縦長で下部余白が大きいため、キャプションを写真下端+マージンに寄せる
-    const margin = Math.round(height * 16 / 672); // 672はPC基準
+    // 画像の下端から20px下にキャプション
+    const margin = 15; // px固定
     yStart = imageDrawTop + imageDrawHeight + margin;
   } else {
     // 1:1/5:7は従来通り余白のY軸中央
@@ -554,7 +499,7 @@ const RetroErrorPopup: React.FC<{ isVisible: boolean; onClose: () => void }> = (
               <span className="text-white text-lg font-bold" style={{ lineHeight: '2rem' }}>!</span>
             </span>
             <span className="inline-block align-middle text-base text-black font-semibold leading-tight" style={{ lineHeight: 1.2, verticalAlign: 'middle' }}>
-              Now, only 3:4 ratio photos
+              Now, only 2:3 and 3:4 ratio photos
             </span>
           </div>
           {/* OKボタン */}
@@ -770,13 +715,7 @@ const FramesTool: React.FC = () => {
   const diff = (baseWidth - previewWidthNum) / 2;
   const controllerMarginLeft = diff > 0 ? `${diff}vw` : '0px';
 
-  // アスペクト比チェック関数（3:4に近いかどうか）
-  const isSupportedAspectRatio = useCallback((width: number, height: number): boolean => {
-    const aspectRatio = width / height;
-    const targetRatio = 3 / 4; // 3:4
-    const tolerance = 0.1; // 10%の許容範囲
-    return Math.abs(aspectRatio - targetRatio) < tolerance;
-  }, []);
+
 
   // 主色抽出（簡易版: 全体平均）
   const getDominantColor = useCallback((img: HTMLImageElement): string => {
@@ -881,7 +820,7 @@ const FramesTool: React.FC = () => {
       img.src = ev.target?.result as string;
     };
     reader.readAsDataURL(file);
-  }, [getDominantColor, isSupportedAspectRatio, color]);
+  }, [getDominantColor, color]);
 
   // プレイスホルダークリックでファイル選択
   const handlePlaceholderClick = () => {
@@ -1049,7 +988,14 @@ const FramesTool: React.FC = () => {
         targetW = drawH * imgAspect;
       }
       const left = padLeft + (drawW - targetW) / 2;
-      const top = padTop;
+      // 4:5画像かつRatio 5:7かつSpaces Lのときだけ上下中央揃え
+      const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
+      let top;
+      if (is45Image && ratio === '5:7' && space === 'L') {
+        top = padTop + (drawH - targetH) / 2;
+      } else {
+        top = padTop;
+      }
       imageDrawTop = top;
       imageDrawHeight = targetH;
       ctx.drawImage(image, left, top, targetW, targetH);
