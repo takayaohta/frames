@@ -31,7 +31,6 @@ const COLORS = [
   { key: 'black', color: '#111' },
   { key: 'retroblue', color: '#0037A6' }, // Retroブルースクリーン
   { key: 'snap', color: '#00AD50' },      // Snap
-  // { key: 'emerald', color: '#008080' },   // Retro壁紙エメラルド（非表示）
   { key: 'auto', color: '' }, // 主色は後でセット
 ];
 
@@ -39,6 +38,12 @@ const COLORS = [
 const SNAP_COLORS = {
   pattern1: '#00AD50', // 元のSnap色
   pattern2: '#FF9900', // オレンジ系のSnap色
+} as const;
+
+// BSoD色の2つのパターン
+const RETROBLUE_COLORS = {
+  pattern1: '#0037A6', // 元のRetroブルー
+  pattern2: '#008080', // Emerald
 } as const;
 
 // ラベルの左オフセット
@@ -465,17 +470,21 @@ function getFramePadding(width: number, height: number, ratio: string, space: st
   // 9:16（16:9）だけ上部余白を2.5倍に
   if (ratio === '9:16') {
     padTop = padTop * 2.5;
+    // 9:16のSサイズの場合はさらに上部余白を増やす
+    if (space === 'S') {
+      padTop = padTop * 1.8; // 2.5倍のさらに1.8倍 = 4.5倍
+    }
   }
 
   return { padTop, padLeft, padRight, padBottom };
 }
 
 // 先頭付近に追加
-function getFrameColor(color: string, autoColor: string, snapPattern: 1 | 2 = 1) {
+function getFrameColor(color: string, autoColor: string, snapPattern: 1 | 2 = 1, retrobluePattern: 1 | 2 = 1) {
   if (!color) return '#dfdfdf';
   if (color === 'white') return '#fff';
   if (color === 'black') return '#111';
-  if (color === 'retroblue') return '#0037A6';
+  if (color === 'retroblue') return retrobluePattern === 1 ? RETROBLUE_COLORS.pattern1 : RETROBLUE_COLORS.pattern2;
   if (color === 'snap') return snapPattern === 1 ? SNAP_COLORS.pattern1 : SNAP_COLORS.pattern2;
   if (color === 'auto') return autoColor;
   return '#dfdfdf';
@@ -569,7 +578,13 @@ function isMobileDevice() {
 }
 
 // Three.jsで3Dテキストを表示するコンポーネント
-const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
+interface Frames3DTitleProps {
+  frameColor: string;
+  colorKey?: string;
+  snapPattern?: 1 | 2;
+  retrobluePattern?: 1 | 2;
+}
+const Frames3DTitle: React.FC<Frames3DTitleProps> = ({ frameColor, colorKey, snapPattern = 1, retrobluePattern = 1 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -616,29 +631,26 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
       scene.add(mesh);
 
       // 色の同期関数
-      const updateColor = (color: string) => {
+      const updateColor = (color: string, colorKey?: string, snapPattern: 1|2 = 1, retrobluePattern: 1|2 = 1) => {
         if (mesh && mesh.material) {
           let hexColor = 0x111111; // デフォルトは黒
-          
-          if (color === 'white' || color === '#fff' || color === '#ffffff') {
-            hexColor = 0x111111; // White選択時も黒に統一
+          if (colorKey === 'snap') {
+            hexColor = snapPattern === 1 ? 0x00AD50 : 0xFF9900;
+          } else if (colorKey === 'retroblue') {
+            hexColor = retrobluePattern === 1 ? 0x0037A6 : 0x008080;
+          } else if (color === 'white' || color === '#fff' || color === '#ffffff') {
+            hexColor = 0x111111;
           } else if (color === 'black' || color === '#111' || color === '#000' || color === '#000000') {
-            hexColor = 0x111111; // 黒
-          } else if (color === 'retroblue' || color === '#0037A6') {
-  hexColor = 0x0037A6; // Retroブルー
-          } else if (color === 'snap') {
-            hexColor = 0x00AD50; // Snap色
+            hexColor = 0x111111;
           } else if (color.startsWith('#')) {
-            // #で始まる色コードは最後に処理（上記の条件に該当しない場合）
             hexColor = parseInt(color.slice(1), 16);
           }
-          
           (mesh.material as THREE.MeshBasicMaterial).color.setHex(hexColor);
         }
       };
       
       // 初期色を設定
-      updateColor(frameColor);
+      updateColor(frameColor, colorKey, snapPattern, retrobluePattern);
 
       // Retro風カクカク回転（8fps, 1step=0.08rad）
       let theta = 0;
@@ -666,7 +678,7 @@ const Frames3DTitle: React.FC<{ frameColor: string }> = ({ frameColor }) => {
       renderer.dispose();
       while (mount.firstChild) mount.removeChild(mount.firstChild);
     };
-  }, [frameColor]); // frameColorが変更されたら再レンダリング
+  }, [frameColor, colorKey, snapPattern, retrobluePattern]); // すべて変更で再レンダリング
 
   return <div ref={mountRef} style={{ width: 400, height: 120 }} />;
 };
@@ -697,6 +709,7 @@ const FramesTool: React.FC = () => {
   const [color, setColor] = useState<ColorType>('');
   const [autoColor, setAutoColor] = useState<string>('#e53e3e'); // デフォルトは赤
   const [snapPattern, setSnapPattern] = useState<1 | 2>(1); // Snap色のパターン管理
+  const [retrobluePattern, setRetrobluePattern] = useState<1 | 2>(1); // BSoD色のパターン管理
   const [autoPattern, setAutoPattern] = useState<1 | 2 | 3>(1); // auto色のパターン管理
   const [exifData, setExifData] = useState<ExifData | null>(null);
   const [captionLines, setCaptionLines] = useState<[string, string]>(['', '']);
@@ -939,7 +952,14 @@ const FramesTool: React.FC = () => {
       setPrintStatus('idle');
     }
     
-    if (newColor === 'snap') {
+    if (newColor === 'retroblue') {
+      if (color === 'retroblue') {
+        setRetrobluePattern(retrobluePattern === 1 ? 2 : 1);
+      } else {
+        setRetrobluePattern(1);
+        setColor('retroblue');
+      }
+    } else if (newColor === 'snap') {
       if (color === 'snap') {
         setSnapPattern(snapPattern === 1 ? 2 : 1);
       } else {
@@ -987,7 +1007,7 @@ const FramesTool: React.FC = () => {
 
     if (!image) {
       // プレースホルダー: 背景＋2本斜線＋枠線
-      const frameColor = getFrameColor(color, autoColor, snapPattern);
+      const frameColor = getFrameColor(color, autoColor, snapPattern, retrobluePattern);
       ctx.fillStyle = frameColor;
       ctx.fillRect(0, 0, canvasW, canvasH);
       
@@ -1010,7 +1030,7 @@ const FramesTool: React.FC = () => {
       ctx.stroke();
     } else {
       // 画像描画（従来通り）
-      const frameColor = getFrameColor(color, autoColor, snapPattern);
+      const frameColor = getFrameColor(color, autoColor, snapPattern, retrobluePattern);
       ctx.fillStyle = frameColor;
       ctx.fillRect(0, 0, canvasW, canvasH);
       const { padTop, padLeft, padRight, padBottom } = getFramePadding(canvasW, canvasH, ratio, space);
@@ -1037,13 +1057,13 @@ const FramesTool: React.FC = () => {
         drawCaption(ctx, canvasW, canvasH, padBottom, imageDrawTop, imageDrawHeight, captionLines, frameColor, space, ratio, image?.width, image?.height);
       }
     }
-  }, [image, space, ratio, color, autoColor, canvasW, canvasH, captionLines, snapPattern]);
+  }, [image, space, ratio, color, autoColor, canvasW, canvasH, captionLines, snapPattern, retrobluePattern]);
 
   // 判定が終わるまで何も描画しない
   useEffect(() => {
     if (forceMobile === null) return;
     drawCanvas();
-  }, [color, autoColor, snapPattern, image, ratio, space, canvasW, canvasH, forceMobile]);
+  }, [color, autoColor, snapPattern, retrobluePattern, image, ratio, space, canvasW, canvasH, forceMobile]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1334,6 +1354,8 @@ const FramesTool: React.FC = () => {
                             : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
                         : c.key === 'snap'
                         ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
+                        : c.key === 'retroblue'
+                        ? (color === 'retroblue' ? getFrameColor('retroblue', autoColor, snapPattern, retrobluePattern) : c.color)
                         : c.color,
                     border: color === c.key ? '2px solid #000' : '1px solid #888',
                     borderRadius: 0,
@@ -1354,6 +1376,7 @@ const FramesTool: React.FC = () => {
                 setColor('white'); // 空文字列ではなく'white'にリセット
                 setAutoColor('#e53e3e');
                 setSnapPattern(1);
+                setRetrobluePattern(1);
                 setAutoPattern(1);
                 setExifData(null);
                 setCaptionLines(['', '']);
@@ -1388,7 +1411,7 @@ const FramesTool: React.FC = () => {
                 outputCanvas.height = outputH;
 
                 // 背景色を設定
-                const frameColorOut = getFrameColor(color, autoColor, snapPattern);
+                const frameColorOut = getFrameColor(color, autoColor, snapPattern, retrobluePattern);
                 outputCtx.fillStyle = frameColorOut;
                 outputCtx.fillRect(0, 0, outputW, outputH);
 
@@ -1491,7 +1514,12 @@ const FramesTool: React.FC = () => {
       <RetroErrorPopup isVisible={showErrorPopup} onClose={() => setShowErrorPopup(false)} />
       {/* タイトルカラム: 画面Y軸中央に配置 */}
       <div className="flex justify-center items-center w-[320px] h-screen">
-        <Frames3DTitle frameColor={(!image && color === '') ? '#111' : getFrameColor(color, autoColor, snapPattern)} />
+        <Frames3DTitle 
+          frameColor={(!image && color === '') ? '#111' : getFrameColor(color, autoColor, snapPattern, retrobluePattern)}
+          colorKey={color}
+          snapPattern={snapPattern}
+          retrobluePattern={retrobluePattern}
+        />
       </div>
       {/* プレビューとコントロールパネルをラップ */}
       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -1572,12 +1600,11 @@ const FramesTool: React.FC = () => {
                     fontWeight: 'bold',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between'
+                    justifyContent: 'flex-start'
                   }}
                   onMouseDown={handleMouseDown}
                 >
                   <span>Frames</span>
-                  <span style={{ fontSize: '10px' }}>●</span>
                 </div>
               )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -1640,6 +1667,8 @@ const FramesTool: React.FC = () => {
                               : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
                           : c.key === 'snap'
                           ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
+                          : c.key === 'retroblue'
+                          ? (color === 'retroblue' ? getFrameColor('retroblue', autoColor, snapPattern, retrobluePattern) : c.color)
                           : c.color,
                       border: color === c.key ? '2px solid #000' : '1px solid #888',
                       borderRadius: 0,
@@ -1660,6 +1689,7 @@ const FramesTool: React.FC = () => {
                   setColor('white'); // 空文字列ではなく'white'にリセット
                   setAutoColor('#e53e3e');
                   setSnapPattern(1);
+                  setRetrobluePattern(1);
                   setAutoPattern(1);
                   setExifData(null);
                   setCaptionLines(['', '']);
@@ -1694,7 +1724,7 @@ const FramesTool: React.FC = () => {
                   outputCanvas.height = outputH;
 
                   // 背景色を設定
-                  const frameColorOut = getFrameColor(color, autoColor, snapPattern);
+                  const frameColorOut = getFrameColor(color, autoColor, snapPattern, retrobluePattern);
                   outputCtx.fillStyle = frameColorOut;
                   outputCtx.fillRect(0, 0, outputW, outputH);
 
@@ -1872,6 +1902,8 @@ const FramesTool: React.FC = () => {
                             : 'linear-gradient(90deg, #e53e3e, #fbbf24, #34d399, #3b82f6, #a78bfa)')
                         : c.key === 'snap'
                         ? (color === 'snap' ? getFrameColor('snap', autoColor, snapPattern) : c.color)
+                        : c.key === 'retroblue'
+                        ? (color === 'retroblue' ? getFrameColor('retroblue', autoColor, snapPattern, retrobluePattern) : c.color)
                         : c.color,
                     border: color === c.key ? '2px solid #000' : '1px solid #888',
                     borderRadius: 0,
@@ -1892,6 +1924,7 @@ const FramesTool: React.FC = () => {
                 setColor('white'); // 空文字列ではなく'white'にリセット
                 setAutoColor('#e53e3e');
                 setSnapPattern(1);
+                setRetrobluePattern(1);
                 setAutoPattern(1);
                 setExifData(null);
                 setCaptionLines(['', '']);
@@ -1926,7 +1959,7 @@ const FramesTool: React.FC = () => {
                 outputCanvas.height = outputH;
 
                 // 背景色を設定
-                const frameColorOut = getFrameColor(color, autoColor, snapPattern);
+                const frameColorOut = getFrameColor(color, autoColor, snapPattern, retrobluePattern);
                 outputCtx.fillStyle = frameColorOut;
                 outputCtx.fillRect(0, 0, outputW, outputH);
 
