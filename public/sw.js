@@ -1,11 +1,10 @@
-const CACHE_NAME = 'frames-v1.0.0';
-const STATIC_CACHE = 'frames-static-v1.0.0';
-const DYNAMIC_CACHE = 'frames-dynamic-v1.0.0';
+const CACHE_NAME = 'frames-v1.0.1';
+const STATIC_CACHE = 'frames-static-v1.0.1';
+const DYNAMIC_CACHE = 'frames-dynamic-v1.0.1';
 
 const STATIC_ASSETS = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
+  '/index.html',
   '/manifest.json',
   '/favicon.ico',
   '/apple-touch-icon.png',
@@ -32,13 +31,9 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then(cache => {
-        console.log('Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => {
-        console.log('Static assets cached successfully');
-        return self.skipWaiting();
-      })
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -49,109 +44,108 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    }).then(() => {
-      console.log('Service Worker activated');
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Fetch event - cache first strategy for static assets, network first for dynamic content
+// Fetch event - cache first for static, network first for others
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Handle static assets (cache first)
+  // index.htmlはキャッシュファースト
+  if (url.pathname === '/' || url.pathname === '/index.html') {
+    event.respondWith(
+      caches.match('/index.html').then(response => {
+        return response || fetch(request).then(res => {
+          if (res.status === 200) {
+            const resClone = res.clone();
+            caches.open(STATIC_CACHE).then(cache => cache.put('/index.html', resClone));
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // static配下はキャッシュファースト
+  if (url.pathname.startsWith('/static/')) {
+    event.respondWith(
+      caches.match(request).then(response => {
+        return response || fetch(request).then(res => {
+          if (res.status === 200) {
+            const resClone = res.clone();
+            caches.open(STATIC_CACHE).then(cache => cache.put(request, resClone));
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // その他のSTATIC_ASSETS
   if (STATIC_ASSETS.includes(url.pathname) || STATIC_ASSETS.includes(request.url)) {
     event.respondWith(
-      caches.match(request)
-        .then(response => {
-          if (response) {
-            return response;
+      caches.match(request).then(response => {
+        return response || fetch(request).then(res => {
+          if (res.status === 200) {
+            const resClone = res.clone();
+            caches.open(STATIC_CACHE).then(cache => cache.put(request, resClone));
           }
-          return fetch(request).then(response => {
-            if (response.status === 200) {
-              const responseClone = response.clone();
-              caches.open(STATIC_CACHE).then(cache => {
-                cache.put(request, responseClone);
-              });
-            }
-            return response;
-          });
-        })
+          return res;
+        });
+      })
     );
     return;
   }
 
-  // Handle image requests (cache first with network fallback)
+  // 画像リクエストはキャッシュファースト
   if (request.destination === 'image') {
     event.respondWith(
-      caches.match(request)
-        .then(response => {
-          if (response) {
-            return response;
+      caches.match(request).then(response => {
+        return response || fetch(request).then(res => {
+          if (res.status === 200) {
+            const resClone = res.clone();
+            caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, resClone));
           }
-          return fetch(request).then(response => {
-            if (response.status === 200) {
-              const responseClone = response.clone();
-              caches.open(DYNAMIC_CACHE).then(cache => {
-                cache.put(request, responseClone);
-              });
-            }
-            return response;
-          });
-        })
-        .catch(() => {
-          // Return a placeholder image or default response
-          return new Response('', { status: 404 });
-        })
+          return res;
+        });
+      }).catch(() => new Response('', { status: 404 }))
     );
     return;
   }
 
-  // Handle API requests (network first with cache fallback)
+  // APIリクエストはネットワークファースト
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(DYNAMIC_CACHE).then(cache => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(request);
-        })
+      fetch(request).then(res => {
+        if (res.status === 200) {
+          const resClone = res.clone();
+          caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, resClone));
+        }
+        return res;
+      }).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Default strategy - network first with cache fallback
+  // デフォルトはネットワークファースト
   event.respondWith(
-    fetch(request)
-      .then(response => {
-        if (response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE).then(cache => {
-            cache.put(request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(request);
-      })
+    fetch(request).then(res => {
+      if (res.status === 200) {
+        const resClone = res.clone();
+        caches.open(DYNAMIC_CACHE).then(cache => cache.put(request, resClone));
+      }
+      return res;
+    }).catch(() => caches.match(request))
   );
 });
 
