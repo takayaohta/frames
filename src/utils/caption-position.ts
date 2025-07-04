@@ -2,32 +2,38 @@
 // キャプションYオフセット設定
 // ===============================
 
-// [1] ★ ベースシステム X Half 用の 3:4 画像用テーブル
+// [1] ★ ベースシステム X Half 用の 3:4 画像用テーブル（Spaces S/M用）
 export const CAPTION_Y_OFFSET_PX: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: 0, L: 0 },
-  '5:7': { S: -25, M: -31, L: -130 },
-  '9:16': { S: -20, M: -580, L: -40 },
+  '1:1': { S: 0, M: 0 },
+  '5:7': { S: -8, M: -8 },
 };
 
-// [2] ★★ 追加調整 : 5:7画像アップロード時
+// [2] ★★ 追加調整 : 5:7画像アップロード時（Spaces S/M用）
 export const CAPTION_Y_OFFSET_PX_57IMG: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: 0, L: 0 },
-  '5:7': { S: -10, M: -60, L: -30 }, // Spacesごとに細かく調整
-  '9:16': { S: -20, M: -20, L: -40 },
+  '1:1': { S: 0, M: -2 },
+  '5:7': { S: 0, M: -1 }, // Spacesごとに細かく調整
 };
 
-// [3] ★★★ 2:3画像用のキャプション位置調整テーブル
+// [3] ★★★ 2:3画像用のキャプション位置調整テーブル（Spaces S/M用）
 export const CAPTION_Y_OFFSET_PX_23IMG: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: 0, L: 0 },
-  '5:7': { S: -20, M: -50, L: -30 }, // 2:3画像用の調整値（より上に移動）
-  '9:16': { S: -30, M: -30, L: -40 }, // 2:3画像用の調整値（より上に移動）
+  '1:1': { S: 0, M: 0 },
+  '5:7': { S: 0, M: -2 }, // 2:3画像用の調整値（より上に移動）
 };
 
-// [4] ★★★ 4:5画像用のキャプション位置調整テーブル
+// [4] ★★★ 4:5画像用のキャプション位置調整テーブル（Spaces S/M用）
 export const CAPTION_Y_OFFSET_PX_45IMG: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: 0, L: 0 },
-  '5:7': { S: -95, M: -90, L: -100 }, // 4:5画像用の調整値
-  '9:16': { S: -25, M: -25, L: -35 }, // 4:5画像用の調整値
+  '1:1': { S: 0, M: 0 },
+  '5:7': { S: -30, M: -25 }, // 4:5画像用の調整値
+};
+
+// ===============================
+// Spaces L用の写真下からの固定距離設定
+// ===============================
+// Spaces Lの場合は写真の下からの距離を統一する
+export const CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L: Record<string, number> = {
+  '1:1': 16,   // 1:1の場合は10px
+  '5:7': 16,   // 5:7の場合は10px
+  '9:16': 16,  // 9:16の場合は10px
 };
 
 // ===============================
@@ -42,6 +48,11 @@ type YOffsetParams = {
 };
 
 export function getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH }: YOffsetParams): number {
+  // Spaces Lの場合は写真の下からの固定距離を使用
+  if (space === 'L') {
+    return CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L[ratio] ?? 0;
+  }
+
   // 1. 5:7画像アップロード時は専用テーブルを使う
   if (
     imageWidth && imageHeight &&
@@ -75,6 +86,51 @@ export function getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canva
     base -= 8;
   }
   return base;
+}
+
+// ===============================
+// Spaces L用のキャプションY座標計算関数
+// ===============================
+type CaptionYPositionParams = {
+  ratio: string;
+  space: string;
+  canvasHeight: number;
+  padBottom: number;
+  imageDrawTop: number;
+  imageDrawHeight: number;
+  captionHeight: number;
+  imageWidth?: number;
+  imageHeight?: number;
+};
+
+export function getCaptionYPosition({
+  ratio,
+  space,
+  canvasHeight,
+  padBottom,
+  imageDrawTop,
+  imageDrawHeight,
+  captionHeight,
+  imageWidth,
+  imageHeight
+}: CaptionYPositionParams): number {
+  // Ratio 9:16 の場合は Spaces 全てで写真の下からの固定距離を使用
+  if (ratio === '9:16') {
+    const imageBottom = imageDrawTop + imageDrawHeight;
+    const distanceFromBottom = CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L['9:16'] ?? 16;
+    return imageBottom + distanceFromBottom;
+  }
+
+  // Spaces Lの場合は写真の下からの固定距離を使用
+  if (space === 'L') {
+    const imageBottom = imageDrawTop + imageDrawHeight;
+    const distanceFromBottom = CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L[ratio] ?? 16;
+    return imageBottom + distanceFromBottom;
+  }
+
+  // Spaces S/Mの場合は従来の余白中央配置
+  const yOffset = getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: canvasHeight });
+  return canvasHeight - padBottom / 2 - captionHeight / 2 + yOffset;
 }
 
 // ===============================
