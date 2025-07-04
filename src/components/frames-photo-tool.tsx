@@ -285,7 +285,8 @@ function drawCaption(
   space: 'S' | 'M' | 'L',
   ratio: string,
   imageWidth?: number,
-  imageHeight?: number
+  imageHeight?: number,
+  canvasHeightForPosition?: number
 ) {
   ctx.save();
   ctx.textAlign = 'left';
@@ -305,7 +306,7 @@ function drawCaption(
   const yStart = getCaptionYPosition({
     ratio,
     space,
-    canvasHeight: height,
+    canvasHeight: canvasHeightForPosition || height,
     padBottom,
     imageDrawTop,
     imageDrawHeight,
@@ -1497,7 +1498,7 @@ const FramesTool: React.FC = () => {
                 if (captionLines[0] || captionLines[1]) {
                   // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
                   const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
-                  drawCaption(outputCtx, outputW, canvasHForCaption, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                  drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height, canvasHForCaption);
                 }
 
                 // ダウンロード
@@ -1877,7 +1878,7 @@ const FramesTool: React.FC = () => {
                   if (captionLines[0] || captionLines[1]) {
                     // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
                     const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
-                    drawCaption(outputCtx, outputW, canvasHForCaption, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height, canvasHForCaption);
                   }
 
                   // ダウンロード
@@ -2181,7 +2182,7 @@ const FramesTool: React.FC = () => {
                   if (captionLines[0] || captionLines[1]) {
                     // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
                     const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
-                    drawCaption(outputCtx, outputW, canvasHForCaption, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height, canvasHForCaption);
                   }
 
                   // ダウンロード
