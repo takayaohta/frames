@@ -285,7 +285,8 @@ function drawCaption(
   space: 'S' | 'M' | 'L',
   ratio: string,
   imageWidth?: number,
-  imageHeight?: number
+  imageHeight?: number,
+  canvasHeightForPosition?: number
 ) {
   ctx.save();
   ctx.textAlign = 'left';
@@ -311,7 +312,8 @@ function drawCaption(
     imageDrawHeight,
     captionHeight: totalHeight,
     imageWidth,
-    imageHeight
+    imageHeight,
+    canvasHForMobileAdjustment: canvasHeightForPosition
   });
   
   // Snap色の特別設定
@@ -1495,7 +1497,9 @@ const FramesTool: React.FC = () => {
 
                 // キャプション描画
                 if (captionLines[0] || captionLines[1]) {
-                  drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                  // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
+                  const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
+                  drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height, canvasHForCaption);
                 }
 
                 // ダウンロード
@@ -1873,7 +1877,9 @@ const FramesTool: React.FC = () => {
 
                   // キャプション描画
                   if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
+                    const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
+                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height, canvasHForCaption);
                   }
 
                   // ダウンロード
@@ -2175,7 +2181,9 @@ const FramesTool: React.FC = () => {
 
                   // キャプション描画
                   if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
+                    const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
+                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height, canvasHForCaption);
                   }
 
                   // ダウンロード
