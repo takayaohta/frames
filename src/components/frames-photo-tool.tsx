@@ -1495,7 +1495,9 @@ const FramesTool: React.FC = () => {
 
                 // キャプション描画
                 if (captionLines[0] || captionLines[1]) {
-                  drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                  // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
+                  const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
+                  drawCaption(outputCtx, outputW, canvasHForCaption, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
                 }
 
                 // ダウンロード
@@ -1873,7 +1875,9 @@ const FramesTool: React.FC = () => {
 
                   // キャプション描画
                   if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
+                    const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
+                    drawCaption(outputCtx, outputW, canvasHForCaption, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
                   }
 
                   // ダウンロード
@@ -2175,7 +2179,9 @@ const FramesTool: React.FC = () => {
 
                   // キャプション描画
                   if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    // モバイル用のキャプション位置調整: プレビューと同じcanvasHを使用
+                    const canvasHForCaption = isMobileDevice() ? canvasH : outputH;
+                    drawCaption(outputCtx, outputW, canvasHForCaption, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
                   }
 
                   // ダウンロード
