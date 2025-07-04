@@ -1479,9 +1479,16 @@ const FramesTool: React.FC = () => {
                   targetW = drawHOut * imgAspect;
                 }
 
-                // Ratio 9:16の場合は中央配置、それ以外は上詰め配置
+                // Ratio 9:16の場合は中央配置、3:4画像かつRatio 5:7かつSpaces Lのときも中央配置
                 const left = padLeftOut + (drawWOut - targetW) / 2;
-                const top = ratio === '9:16' ? padTopOut + (drawHOut - targetH) / 2 : padTopOut;
+                const is34Image = Math.abs(image.width / image.height - 3 / 4) < 0.05;
+                const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
+                let top;
+                if (ratio === '9:16' || (is34Image && ratio === '5:7' && space === 'L') || (is45Image && ratio === '5:7' && space === 'L')) {
+                  top = padTopOut + (drawHOut - targetH) / 2;
+                } else {
+                  top = padTopOut;
+                }
 
                 // 画像を描画（クロップや拡大はしない）
                 outputCtx.drawImage(image, left, top, targetW, targetH);
@@ -2152,9 +2159,16 @@ const FramesTool: React.FC = () => {
                     targetW = drawHOut * imgAspect;
                   }
 
-                  // Ratio 9:16の場合は中央配置、それ以外は上詰め配置
+                  // Ratio 9:16の場合は中央配置、3:4画像かつRatio 5:7かつSpaces Lのときも中央配置
                   const left = padLeftOut + (drawWOut - targetW) / 2;
-                  const top = ratio === '9:16' ? padTopOut + (drawHOut - targetH) / 2 : padTopOut;
+                  const is34Image = Math.abs(image.width / image.height - 3 / 4) < 0.05;
+                  const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
+                  let top;
+                  if (ratio === '9:16' || (is34Image && ratio === '5:7' && space === 'L') || (is45Image && ratio === '5:7' && space === 'L')) {
+                    top = padTopOut + (drawHOut - targetH) / 2;
+                  } else {
+                    top = padTopOut;
+                  }
 
                   // 画像を描画（クロップや拡大はしない）
                   outputCtx.drawImage(image, left, top, targetW, targetH);
