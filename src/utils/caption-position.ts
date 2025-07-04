@@ -101,6 +101,7 @@ type CaptionYPositionParams = {
   captionHeight: number;
   imageWidth?: number;
   imageHeight?: number;
+  canvasHForMobileAdjustment?: number;
 };
 
 export function getCaptionYPosition({
@@ -112,7 +113,8 @@ export function getCaptionYPosition({
   imageDrawHeight,
   captionHeight,
   imageWidth,
-  imageHeight
+  imageHeight,
+  canvasHForMobileAdjustment
 }: CaptionYPositionParams): number {
   // Ratio 9:16 の場合は Spaces 全てで写真の下からの固定距離を使用
   if (ratio === '9:16') {
@@ -129,7 +131,7 @@ export function getCaptionYPosition({
   }
 
   // Spaces S/Mの場合は従来の余白中央配置
-  const yOffset = getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: canvasHeight });
+  const yOffset = getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: canvasHForMobileAdjustment || canvasHeight });
   return canvasHeight - padBottom / 2 - captionHeight / 2 + yOffset;
 }
 

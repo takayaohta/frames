@@ -306,13 +306,14 @@ function drawCaption(
   const yStart = getCaptionYPosition({
     ratio,
     space,
-    canvasHeight: canvasHeightForPosition || height,
+    canvasHeight: height,
     padBottom,
     imageDrawTop,
     imageDrawHeight,
     captionHeight: totalHeight,
     imageWidth,
-    imageHeight
+    imageHeight,
+    canvasHForMobileAdjustment: canvasHeightForPosition
   });
   
   // Snap色の特別設定
