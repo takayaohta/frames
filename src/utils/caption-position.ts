@@ -3,27 +3,28 @@
 // ===============================
 
 // [1] ★ ベースシステム X Half 用の 3:4 画像用テーブル（Spaces S/M用）
-export const CAPTION_Y_OFFSET_PX: Record<string, Record<string, number>> = {
+// px指定から割合指定に変更（キャンバス高さに対する割合）
+export const CAPTION_Y_OFFSET_RATIO: Record<string, Record<string, number>> = {
   '1:1': { S: 0, M: 0 },
-  '5:7': { S: -8, M: -8 },
+  '5:7': { S: -0.012, M: -0.012 }, // -8px → -0.012 (約-8/672)
 };
 
 // [2] ★★ 追加調整 : 5:7画像アップロード時（Spaces S/M用）
-export const CAPTION_Y_OFFSET_PX_57IMG: Record<string, Record<string, number>> = {
-  '1:1': { S: 0, M: -2 },
-  '5:7': { S: 0, M: -1 }, // Spacesごとに細かく調整
+export const CAPTION_Y_OFFSET_RATIO_57IMG: Record<string, Record<string, number>> = {
+  '1:1': { S: 0, M: -0.003 }, // -2px → -0.003 (約-2/672)
+  '5:7': { S: 0, M: -0.0015 }, // -1px → -0.0015 (約-1/672)
 };
 
 // [3] ★★★ 2:3画像用のキャプション位置調整テーブル（Spaces S/M用）
-export const CAPTION_Y_OFFSET_PX_23IMG: Record<string, Record<string, number>> = {
+export const CAPTION_Y_OFFSET_RATIO_23IMG: Record<string, Record<string, number>> = {
   '1:1': { S: 0, M: 0 },
-  '5:7': { S: 0, M: -2 }, // 2:3画像用の調整値（より上に移動）
+  '5:7': { S: 0, M: -0.003 }, // -2px → -0.003 (約-2/672)
 };
 
 // [4] ★★★ 4:5画像用のキャプション位置調整テーブル（Spaces S/M用）
-export const CAPTION_Y_OFFSET_PX_45IMG: Record<string, Record<string, number>> = {
+export const CAPTION_Y_OFFSET_RATIO_45IMG: Record<string, Record<string, number>> = {
   '1:1': { S: 0, M: 0 },
-  '5:7': { S: -30, M: -25 }, // 4:5画像用の調整値
+  '5:7': { S: -0.045, M: -0.037 }, // -30px → -0.045, -25px → -0.037 (約-30/672, -25/672)
 };
 
 // ===============================
@@ -31,9 +32,9 @@ export const CAPTION_Y_OFFSET_PX_45IMG: Record<string, Record<string, number>> =
 // ===============================
 // Spaces Lの場合は写真の下からの距離を統一する
 export const CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L: Record<string, number> = {
-  '1:1': 16,   // 1:1の場合は10px
-  '5:7': 16,   // 5:7の場合は10px
-  '9:16': 16,  // 9:16の場合は10px
+  '1:1': 0.02,
+  '5:7': 0.02,
+  '9:16': 0.02,
 };
 
 // ===============================
@@ -58,32 +59,32 @@ export function getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canva
     imageWidth && imageHeight &&
     Math.abs(imageWidth / imageHeight - 5 / 7) < 0.01
   ) {
-    return CAPTION_Y_OFFSET_PX_57IMG[ratio]?.[space] ?? 0;
+    return CAPTION_Y_OFFSET_RATIO_57IMG[ratio]?.[space] ?? 0;
   }
   // 2. 2:3画像アップロード時は専用テーブルを使う
   if (
     imageWidth && imageHeight &&
     Math.abs(imageWidth / imageHeight - 2 / 3) < 0.05
   ) {
-    return CAPTION_Y_OFFSET_PX_23IMG[ratio]?.[space] ?? 0;
+    return CAPTION_Y_OFFSET_RATIO_23IMG[ratio]?.[space] ?? 0;
   }
   // 3. 4:5画像アップロード時は専用テーブルを使う
   if (
     imageWidth && imageHeight &&
     Math.abs(imageWidth / imageHeight - 4 / 5) < 0.05
   ) {
-    return CAPTION_Y_OFFSET_PX_45IMG[ratio]?.[space] ?? 0;
+    return CAPTION_Y_OFFSET_RATIO_45IMG[ratio]?.[space] ?? 0;
   }
   // 4. 今後追加する分岐があればここに
   // if (imageWidth && imageHeight && ... ) { ... }
   // 5. それ以外はベーステーブル
-  let base = CAPTION_Y_OFFSET_PX[ratio]?.[space] ?? 0;
-  // スマホ補正: 1:1 S, 5:7 S のときだけcanvasHがPC基準より小さい場合指定px上げる
+  let base = CAPTION_Y_OFFSET_RATIO[ratio]?.[space] ?? 0;
+  // スマホ補正: 1:1 S, 5:7 S のときだけcanvasHがPC基準より小さい場合指定割合上げる
   if (ratio === '1:1' && space === 'S' && canvasH && canvasH < 480) {
-    base -= 10;
+    base -= 0.021; // -10px → -0.021 (約-10/480)
   }
   if (ratio === '5:7' && space === 'S' && canvasH && canvasH < 672) {
-    base -= 8;
+    base -= 0.012; // -8px → -0.012 (約-8/672)
   }
   return base;
 }
@@ -117,20 +118,21 @@ export function getCaptionYPosition({
   // Ratio 9:16 の場合は Spaces 全てで写真の下からの固定距離を使用
   if (ratio === '9:16') {
     const imageBottom = imageDrawTop + imageDrawHeight;
-    const distanceFromBottom = CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L['9:16'] ?? 16;
+    const distanceFromBottom = (CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L['9:16'] ?? 0.02) * canvasHeight;
     return imageBottom + distanceFromBottom;
   }
 
   // Spaces Lの場合は写真の下からの固定距離を使用
   if (space === 'L') {
     const imageBottom = imageDrawTop + imageDrawHeight;
-    const distanceFromBottom = CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L[ratio] ?? 16;
+    const distanceFromBottom = (CAPTION_DISTANCE_FROM_IMAGE_BOTTOM_L[ratio] ?? 0.02) * canvasHeight;
     return imageBottom + distanceFromBottom;
   }
 
   // Spaces S/Mの場合は従来の余白中央配置
-  const yOffset = getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: canvasHeight });
-  return canvasHeight - padBottom / 2 - captionHeight / 2 + yOffset;
+  const yOffsetRatio = getCaptionYOffset({ ratio, space, imageWidth, imageHeight, canvasH: canvasHeight });
+  const yOffsetPx = yOffsetRatio * canvasHeight;
+  return canvasHeight - padBottom / 2 - captionHeight / 2 + yOffsetPx;
 }
 
 // ===============================

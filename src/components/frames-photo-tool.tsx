@@ -273,6 +273,66 @@ function drawTextWithLetterSpacing(ctx: CanvasRenderingContext2D, text: string, 
   }
 }
 
+// 画像描画・余白・キャプション位置計算の共通関数
+function getFrameLayout({
+  canvasW,
+  canvasH,
+  image,
+  ratio,
+  space
+}: {
+  canvasW: number,
+  canvasH: number,
+  image: HTMLImageElement,
+  ratio: string,
+  space: string
+}) {
+  const { padTop, padLeft, padRight, padBottom } = getFramePadding(canvasW, canvasH, ratio, space);
+  const drawW = canvasW - padLeft - padRight;
+  const drawH = canvasH - padTop - padBottom;
+  // Ratio 9:16 かつ Spaces L のときは padTop/padBottom を0、drawHをcanvasHにして中央揃え
+  let padTopForDraw = padTop;
+  let padBottomForDraw = padBottom;
+  let drawHForDraw = drawH;
+  if (ratio === '9:16' && space === 'L') {
+    padTopForDraw = 0;
+    padBottomForDraw = 0;
+    drawHForDraw = canvasH;
+  }
+  const imgAspect = image.width / image.height;
+  const frameAspect = drawW / drawHForDraw;
+  let targetW, targetH;
+  if (imgAspect > frameAspect) {
+    targetW = drawW;
+    targetH = drawW / imgAspect;
+  } else {
+    targetH = drawHForDraw;
+    targetW = drawHForDraw * imgAspect;
+  }
+  const left = padLeft + (drawW - targetW) / 2;
+  // Ratio 9:16の場合はどのSpacesでも中央配置、3:4画像かつRatio 5:7かつSpaces Lのときも中央配置
+  const is34Image = Math.abs(image.width / image.height - 3 / 4) < 0.05;
+  const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
+  let top;
+  if (ratio === '9:16' || (is34Image && ratio === '5:7' && space === 'L') || (is45Image && ratio === '5:7' && space === 'L')) {
+    top = padTopForDraw + (drawHForDraw - targetH) / 2;
+  } else {
+    top = padTopForDraw;
+  }
+  return {
+    padTop: padTopForDraw,
+    padBottom: padBottomForDraw,
+    padLeft,
+    padRight,
+    drawW,
+    drawH: drawHForDraw,
+    left,
+    top,
+    targetW,
+    targetH
+  };
+}
+
 function drawCaption(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -335,9 +395,11 @@ function drawCaption(
     secondLineColor = firstLineColor;
   }
   
-  // 字間設定
-  const letterSpacing1 = 0.4; // 1行目（Shot on/機種名）- 字間を広げる
-  const letterSpacing2 = 0.4; // 2行目
+  // 字間設定（フォントサイズに対する割合）
+  const letterSpacingRatio1 = 0.02; // 1行目（Shot on/機種名）- 字間を広げる
+  const letterSpacingRatio2 = 0.02; // 2行目
+  const letterSpacing1 = baseFontPx1 * letterSpacingRatio1;
+  const letterSpacing2 = baseFontPx2 * letterSpacingRatio2;
   
   // 1行目は不透明で描画
   ctx.globalAlpha = 1.0;
@@ -985,48 +1047,14 @@ const FramesTool: React.FC = () => {
       ctx.lineTo(canvasW, canvasH);
       ctx.stroke();
     } else {
-      // 画像描画（従来通り）
+      // 画像描画（共通ロジック）
       const frameColor = getFrameColor(color, autoColor, snapPattern, retrobluePattern);
       ctx.fillStyle = frameColor;
       ctx.fillRect(0, 0, canvasW, canvasH);
-      const { padTop, padLeft, padRight, padBottom } = getFramePadding(canvasW, canvasH, ratio, space);
-      const drawW = canvasW - padLeft - padRight;
-      const drawH = canvasH - padTop - padBottom;
-      // Ratio 9:16 かつ Spaces L のときは padTop/padBottom を0、drawHをcanvasHにして中央揃え
-      let padTopForDraw = padTop;
-      let padBottomForDraw = padBottom;
-      let drawHForDraw = drawH;
-      if (ratio === '9:16' && space === 'L') {
-        padTopForDraw = 0;
-        padBottomForDraw = 0;
-        drawHForDraw = canvasH;
-      }
-      let imageDrawTop, imageDrawHeight;
-      const imgAspect = image.width / image.height;
-      const frameAspect = drawW / drawHForDraw;
-      let targetW, targetH;
-      if (imgAspect > frameAspect) {
-        targetW = drawW;
-        targetH = drawW / imgAspect;
-      } else {
-        targetH = drawHForDraw;
-        targetW = drawHForDraw * imgAspect;
-      }
-      const left = padLeft + (drawW - targetW) / 2;
-      // Ratio 9:16の場合はどのSpacesでも中央配置、3:4画像かつRatio 5:7かつSpaces Lのときも中央配置
-      const is34Image = Math.abs(image.width / image.height - 3 / 4) < 0.05;
-      const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
-      let top;
-      if (ratio === '9:16' || (is34Image && ratio === '5:7' && space === 'L') || (is45Image && ratio === '5:7' && space === 'L')) {
-        top = padTopForDraw + (drawHForDraw - targetH) / 2;
-      } else {
-        top = padTopForDraw;
-      }
-      imageDrawTop = top;
-      imageDrawHeight = targetH;
-      ctx.drawImage(image, left, top, targetW, targetH);
+      const layout = getFrameLayout({ canvasW, canvasH, image, ratio, space });
+      ctx.drawImage(image, layout.left, layout.top, layout.targetW, layout.targetH);
       if (captionLines[0] || captionLines[1]) {
-        drawCaption(ctx, canvasW, canvasH, padBottom, imageDrawTop, imageDrawHeight, captionLines, frameColor, space, ratio, image?.width, image?.height);
+        drawCaption(ctx, canvasW, canvasH, layout.padBottom, layout.top, layout.targetH, captionLines, frameColor, space, ratio, image?.width, image?.height);
       }
     }
   }, [image, space, ratio, color, autoColor, canvasW, canvasH, captionLines, snapPattern, retrobluePattern]);
@@ -1461,41 +1489,11 @@ const FramesTool: React.FC = () => {
                 outputCtx.fillStyle = frameColorOut;
                 outputCtx.fillRect(0, 0, outputW, outputH);
 
-                // 余白計算
-                const { padTop: padTopOut, padLeft: padLeftOut, padRight: padRightOut, padBottom: padBottomOut } = getFramePadding(outputW, outputH, ratio, space);
-                const drawWOut = outputW - padLeftOut - padRightOut;
-                const drawHOut = outputH - padTopOut - padBottomOut;
-
-                // 画像描画領域
-                const imgAspect = image.width / image.height;
-                const frameAspect = drawWOut / drawHOut;
-
-                let targetW, targetH;
-                if (imgAspect > frameAspect) {
-                  targetW = drawWOut;
-                  targetH = drawWOut / imgAspect;
-                } else {
-                  targetH = drawHOut;
-                  targetW = drawHOut * imgAspect;
-                }
-
-                // Ratio 9:16の場合は中央配置、3:4画像かつRatio 5:7かつSpaces Lのときも中央配置
-                const left = padLeftOut + (drawWOut - targetW) / 2;
-                const is34Image = Math.abs(image.width / image.height - 3 / 4) < 0.05;
-                const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
-                let top;
-                if (ratio === '9:16' || (is34Image && ratio === '5:7' && space === 'L') || (is45Image && ratio === '5:7' && space === 'L')) {
-                  top = padTopOut + (drawHOut - targetH) / 2;
-                } else {
-                  top = padTopOut;
-                }
-
-                // 画像を描画（クロップや拡大はしない）
-                outputCtx.drawImage(image, left, top, targetW, targetH);
-
-                // キャプション描画
+                // 画像描画（共通ロジック）
+                const layout = getFrameLayout({ canvasW: outputW, canvasH: outputH, image, ratio, space });
+                outputCtx.drawImage(image, layout.left, layout.top, layout.targetW, layout.targetH);
                 if (captionLines[0] || captionLines[1]) {
-                  drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                  drawCaption(outputCtx, outputW, outputH, layout.padBottom, layout.top, layout.targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
                 }
 
                 // ダウンロード
@@ -1846,34 +1844,13 @@ const FramesTool: React.FC = () => {
                   outputCtx.fillStyle = frameColorOut;
                   outputCtx.fillRect(0, 0, outputW, outputH);
 
-                  // 余白計算
-                  const { padTop: padTopOut, padLeft: padLeftOut, padRight: padRightOut, padBottom: padBottomOut } = getFramePadding(outputW, outputH, ratio, space);
-                  const drawWOut = outputW - padLeftOut - padRightOut;
-                  const drawHOut = outputH - padTopOut - padBottomOut;
+                  // 画像描画（共通ロジック）
+                  const layout = getFrameLayout({ canvasW: outputW, canvasH: outputH, image, ratio, space });
+                  outputCtx.drawImage(image, layout.left, layout.top, layout.targetW, layout.targetH);
 
-                  // 画像描画領域
-                  const imgAspect = image.width / image.height;
-                  const frameAspect = drawWOut / drawHOut;
-
-                  let targetW, targetH;
-                  if (imgAspect > frameAspect) {
-                    targetW = drawWOut;
-                    targetH = drawWOut / imgAspect;
-                  } else {
-                    targetH = drawHOut;
-                    targetW = drawHOut * imgAspect;
-                  }
-
-                  // Ratio 9:16の場合は中央配置、それ以外は上詰め配置
-                  const left = padLeftOut + (drawWOut - targetW) / 2;
-                  const top = ratio === '9:16' ? padTopOut + (drawHOut - targetH) / 2 : padTopOut;
-
-                  // 画像を描画（クロップや拡大はしない）
-                  outputCtx.drawImage(image, left, top, targetW, targetH);
-
-                  // キャプション描画
+                  // キャプション描画（書き出し専用）
                   if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    drawCaption(outputCtx, outputW, outputH, layout.padBottom, layout.top, layout.targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
                   }
 
                   // ダウンロード
@@ -1932,7 +1909,7 @@ const FramesTool: React.FC = () => {
                     // }, 1500);
                   }, 'image/jpeg', 1.0);
                 }}>{printStatus === 'done' ? 'Done!' : 'Print'}</RetroButton>
-              </div>
+              </div> 
             </div>
           </div>
         </motion.div>
@@ -2141,41 +2118,13 @@ const FramesTool: React.FC = () => {
                   outputCtx.fillStyle = frameColorOut;
                   outputCtx.fillRect(0, 0, outputW, outputH);
 
-                  // 余白計算
-                  const { padTop: padTopOut, padLeft: padLeftOut, padRight: padRightOut, padBottom: padBottomOut } = getFramePadding(outputW, outputH, ratio, space);
-                  const drawWOut = outputW - padLeftOut - padRightOut;
-                  const drawHOut = outputH - padTopOut - padBottomOut;
+                  // 画像描画（共通ロジック）
+                  const layout = getFrameLayout({ canvasW: outputW, canvasH: outputH, image, ratio, space });
+                  outputCtx.drawImage(image, layout.left, layout.top, layout.targetW, layout.targetH);
 
-                  // 画像描画領域
-                  const imgAspect = image.width / image.height;
-                  const frameAspect = drawWOut / drawHOut;
-
-                  let targetW, targetH;
-                  if (imgAspect > frameAspect) {
-                    targetW = drawWOut;
-                    targetH = drawWOut / imgAspect;
-                  } else {
-                    targetH = drawHOut;
-                    targetW = drawHOut * imgAspect;
-                  }
-
-                  // Ratio 9:16の場合は中央配置、3:4画像かつRatio 5:7かつSpaces Lのときも中央配置
-                  const left = padLeftOut + (drawWOut - targetW) / 2;
-                  const is34Image = Math.abs(image.width / image.height - 3 / 4) < 0.05;
-                  const is45Image = Math.abs(image.width / image.height - 4 / 5) < 0.05;
-                  let top;
-                  if (ratio === '9:16' || (is34Image && ratio === '5:7' && space === 'L') || (is45Image && ratio === '5:7' && space === 'L')) {
-                    top = padTopOut + (drawHOut - targetH) / 2;
-                  } else {
-                    top = padTopOut;
-                  }
-
-                  // 画像を描画（クロップや拡大はしない）
-                  outputCtx.drawImage(image, left, top, targetW, targetH);
-
-                  // キャプション描画
+                  // キャプション描画（書き出し専用）
                   if (captionLines[0] || captionLines[1]) {
-                    drawCaption(outputCtx, outputW, outputH, padBottomOut, top, targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
+                    drawCaption(outputCtx, outputW, outputH, layout.padBottom, layout.top, layout.targetH, captionLines, frameColorOut, space, ratio, image?.width, image?.height);
                   }
 
                   // ダウンロード
